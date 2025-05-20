@@ -1,0 +1,52 @@
+{
+  "name": "expo-share-intent-example",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "prebuild": "expo prebuild --no-install",
+    "clean": "yarn prebuild --clean",
+    "test": "CI=1 expo install --check",
+    "test:fix": "expo install --fix",
+    "doctor": "npx --yes expo-doctor@latest",
+    "lint": "eslint .",
+    "postinstall": "patch-package"
+  },
+  "dependencies": {
+    "expo": "~53.0.5",
+    "expo-constants": "~17.1.5",
+    "expo-linking": "~7.1.4",
+    "expo-router": "~5.0.4",
+    "expo-splash-screen": "~0.30.8",
+    "expo-status-bar": "~2.2.3",
+    "patch-package": "^8.0.0",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.10.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@expo/cli": "^0.24.10",
+    "@types/react": "~19.0.10",
+    "babel-plugin-module-resolver": "^5.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-universe": "^12.0.0",
+    "prettier": "^3.0.3",
+    "typescript": "~5.8.3"
+  },
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "nativeModulesDir": "../.."
+    },
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
+  }
+}

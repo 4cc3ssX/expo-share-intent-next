@@ -1,0 +1,86 @@
+{
+  "name": "expo-share-intent-next",
+  "version": "4.0.0",
+  "description": "Use native share intent for ios and android with expo",
+  "homepage": "https://github.com/4cc3ssX/expo-share-intent-next/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/4cc3ssX/expo-share-intent-next.git"
+  },
+  "author": "4cc3ssX (https://github.com/4cc3ssX)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/4cc3ssX/expo-share-intent-next/issues"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/4cc3ssX"
+    },
+    "https://www.buymeacoffee.com/ryamjs.dev"
+  ],
+  "keywords": [
+    "react-native",
+    "expo",
+    "expo-share-extension",
+    "react-native-share-extension",
+    "react-native-share-intent",
+    "expo-config-plugin",
+    "share-share-intent",
+    "share-intent"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "app.plugin.js",
+    "plugin/build",
+    "build",
+    "expo-module.config.json",
+    "ios",
+    "android",
+    "!android/build/"
+  ],
+  "scripts": {
+    "release": "dotenv release-it",
+    "build": "expo-module build",
+    "build:plugin": "expo-module build plugin",
+    "postbuild": "cp plugin/src/ios/*.swift plugin/build/ios",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare && yarn postbuild",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module"
+  },
+  "dependencies": {
+    "@expo/config-plugins": "^10.0.2",
+    "expo-constants": "^17.1.5",
+    "expo-linking": "~7.1.4"
+  },
+  "resolutions": {
+    "string-width": "^4",
+    "strip-ansi": "^4",
+    "wrap-ansi": "^7"
+  },
+  "peerDependencies": {
+    "expo": "^53",
+    "expo-constants": ">=17.1.5",
+    "expo-linking": ">=7.0.2",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@release-it/conventional-changelog": "^9.0.0",
+    "@types/react": "~18.3.12",
+    "@types/react-native": "^0.73.0",
+    "dotenv-cli": "^7.4.2",
+    "eslint": "^8.57.1",
+    "expo-module-scripts": "^4.0.2",
+    "expo-modules-core": "^2.0.1",
+    "prettier": "^3.2.5",
+    "release-it": "^17.10.0"
+  }
+}
