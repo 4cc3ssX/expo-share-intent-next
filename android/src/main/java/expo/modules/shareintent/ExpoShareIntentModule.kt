@@ -1,4 +1,3 @@
-`
 package expo.modules.shareintent
 
 import android.annotation.SuppressLint
@@ -20,7 +19,7 @@ import android.provider.MediaStore
 import android.util.Log
 import android.webkit.MimeTypeMap
 import expo.modules.kotlin.exception.Exceptions
-import expo.modules.kotlin.`modules.Module
+import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
 import java.io.FileOutputStream

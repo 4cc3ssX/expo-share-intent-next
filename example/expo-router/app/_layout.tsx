@@ -1,6 +1,6 @@
 import { Slot, useRouter } from "expo-router";
 
-import { ShareIntentProvider } from "expo-share-intent";
+import { ShareIntentProvider } from "expo-share-intent-next";
 
 export default function Layout() {
   const router = useRouter();

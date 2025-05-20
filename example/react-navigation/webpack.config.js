@@ -6,7 +6,7 @@ module.exports = async (env, argv) => {
     {
       ...env,
       babel: {
-        dangerouslyAddModulePathsToTranspile: ["expo-share-intent"],
+        dangerouslyAddModulePathsToTranspile: ["expo-share-intent-next"],
       },
     },
     argv,

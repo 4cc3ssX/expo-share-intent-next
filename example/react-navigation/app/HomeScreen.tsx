@@ -1,4 +1,4 @@
-import { useShareIntentContext } from "expo-share-intent";
+import { useShareIntentContext } from "expo-share-intent-next";
 import { Text, View, StyleSheet } from "react-native";
 
 export default function HomeScreen() {

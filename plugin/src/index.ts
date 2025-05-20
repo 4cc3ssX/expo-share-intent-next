@@ -16,7 +16,7 @@ import { Parameters } from "./types";
 import { withCompatibilityChecker } from "./withCompatibilityChecker";
 
 const pkg: { name: string; version?: string } = {
-  name: "expo-share-intent",
+  name: "expo-share-intent-next",
   version: "UNVERSIONED",
 };
 

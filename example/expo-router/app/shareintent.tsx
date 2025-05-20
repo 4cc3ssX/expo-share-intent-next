@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import {
   ShareIntent as ShareIntentType,
   useShareIntentContext,
-} from "expo-share-intent";
+} from "expo-share-intent-next";
 
 const WebUrlComponent = ({ shareIntent }: { shareIntent: ShareIntentType }) => {
   return (

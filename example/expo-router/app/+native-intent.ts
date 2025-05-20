@@ -1,4 +1,4 @@
-import { getShareExtensionKey } from "expo-share-intent";
+import { getShareExtensionKey } from "expo-share-intent-next";
 
 export function redirectSystemPath({
   path,

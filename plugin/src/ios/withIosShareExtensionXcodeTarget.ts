@@ -117,7 +117,7 @@ export const withShareExtensionXcodeTarget: ConfigPlugin<Parameters> = (
       if (e.message.includes("reading 'path'")) {
         console.error(e);
         throw new Error(
-          `[expo-share-intent] Could not add resource files to the Share Extension, please check your "patch-package" installation for xcode (see: https://github.com/4cc3ssX/expo-share-intent-next?tab=readme-ov-file#installation)`,
+          `[expo-share-intent-next] Could not add resource files to the Share Extension, please check your "patch-package" installation for xcode (see: https://github.com/4cc3ssX/expo-share-intent-next?tab=readme-ov-file#installation)`,
         );
       }
       throw e;

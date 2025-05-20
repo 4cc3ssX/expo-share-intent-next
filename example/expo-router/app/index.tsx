@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useShareIntentContext } from "expo-share-intent";
+import { useShareIntentContext } from "expo-share-intent-next";
 import { useEffect } from "react";
 import { Text, View, StyleSheet } from "react-native";
 

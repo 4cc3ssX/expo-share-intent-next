@@ -4,7 +4,7 @@ import {
   useShareIntent,
   ShareIntentFile,
   ShareIntent,
-} from "expo-share-intent";
+} from "expo-share-intent-next";
 import { Fragment } from "react";
 
 const WebUrlComponent = ({ shareIntent }: { shareIntent: ShareIntent }) => {

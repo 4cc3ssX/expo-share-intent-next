@@ -18,7 +18,7 @@ import {
   ShareIntentModule,
   getScheme,
   getShareExtensionKey,
-} from "expo-share-intent";
+} from "expo-share-intent-next";
 
 const Stack = createNativeStackNavigator();
 

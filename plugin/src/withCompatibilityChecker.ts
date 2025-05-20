@@ -58,7 +58,7 @@ export const withCompatibilityChecker: ConfigPlugin<Parameters> = (
       );
     }
   } else {
-    console.warn(`[expo-share-intent] IOS module disabled`);
+    console.warn(`[expo-share-intent-next] IOS module disabled`);
   }
 
   return config;

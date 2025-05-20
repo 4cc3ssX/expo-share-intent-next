@@ -99,12 +99,14 @@ export default function useShareIntent(
   useEffect(() => {
     if (options.disabled) {
       options.debug &&
-        console.debug("expo-share-intent module is disabled by configuration!");
+        console.debug(
+          "expo-share-intent-next module is disabled by configuration!",
+        );
       return;
     } else if (!ExpoShareIntentModule) {
       options.debug &&
         console.warn(
-          "expo-share-intent module is disabled: ExpoShareIntentModule not found!",
+          "expo-share-intent-next module is disabled: ExpoShareIntentModule not found!",
         );
       return;
     }

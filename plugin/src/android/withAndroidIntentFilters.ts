@@ -71,7 +71,7 @@ function addIntentFilters(
   const newFilters: Parameters["androidIntentFilters"] = filters || ["text/*"];
 
   console.warn(
-    `[expo-share-intent] add android filters (${newFilters.join(" ")}) and multi-filters (${multiFilters ? multiFilters.join(" ") : ""})`,
+    `[expo-share-intent-next] add android filters (${newFilters.join(" ")}) and multi-filters (${multiFilters ? multiFilters.join(" ") : ""})`,
   );
   const newIntentFilters = [
     {

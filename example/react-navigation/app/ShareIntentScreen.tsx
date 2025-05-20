@@ -1,7 +1,7 @@
 import { Button, Image, StyleSheet, Text, View } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 
-import { ShareIntent, useShareIntentContext } from "expo-share-intent";
+import { ShareIntent, useShareIntentContext } from "expo-share-intent-next";
 import { RootStackParamList } from "./types";
 
 interface Props {
