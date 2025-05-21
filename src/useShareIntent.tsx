@@ -70,16 +70,9 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
    * Donate send message for Siri suggestions (iOS)
    */
   const donateSendMessage = useCallback(
-    ({
-      conversationIdentifier,
-      name,
-      imageURL,
-      content,
-    }: DonateSendMessageOptions) => {
-      if (!conversationIdentifier || !name) {
-        console.error(
-          "donateSendMessage requires conversationIdentifier and name",
-        );
+    ({ conversationId, name, imageURL, content }: DonateSendMessageOptions) => {
+      if (!conversationId || !name) {
+        console.error("donateSendMessage requires conversationId and name");
         return;
       }
       if (Platform.OS !== "ios") {
@@ -87,7 +80,7 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
         return;
       }
       ExpoShareIntentModule?.donateSendMessage(
-        conversationIdentifier,
+        conversationId,
         name,
         imageURL,
         content,

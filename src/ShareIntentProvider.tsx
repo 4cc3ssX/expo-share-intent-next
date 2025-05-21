@@ -1,11 +1,12 @@
 import React, { useContext } from "react";
 
+import { DEFAULT_INTENT } from "./constants";
 import {
   DonateSendMessageOptions,
   ShareIntent,
   ShareIntentOptions,
 } from "./types";
-import useShareIntent, { SHAREINTENT_DEFAULTVALUE } from "./useShareIntent";
+import useShareIntent from "./useShareIntent";
 
 type ShareIntentContextState = {
   isReady: boolean;
@@ -19,7 +20,7 @@ type ShareIntentContextState = {
 const ShareIntentContext = React.createContext<ShareIntentContextState>({
   isReady: false,
   hasShareIntent: false,
-  shareIntent: SHAREINTENT_DEFAULTVALUE,
+  shareIntent: DEFAULT_INTENT,
   donateSendMessage: () => {},
   resetShareIntent: () => {},
   error: null,
