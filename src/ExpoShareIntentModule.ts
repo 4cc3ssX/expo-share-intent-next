@@ -2,6 +2,7 @@ import { requireOptionalNativeModule, NativeModule } from "expo-modules-core";
 
 import {
   ChangeEventPayload,
+  DonateEventPayload,
   ErrorEventPayload,
   StateEventPayload,
 } from "./ExpoShareIntentModule.types";
@@ -10,11 +11,18 @@ type ExpoShareIntentModuleEvents = {
   onError: (event: ErrorEventPayload) => void;
   onChange: (event: ChangeEventPayload) => void;
   onStateChange: (event: StateEventPayload) => void;
+  onDonate: (event: DonateEventPayload) => void;
 };
 
 declare class ExpoShareIntentModuleType extends NativeModule<ExpoShareIntentModuleEvents> {
   getShareIntent(url: string): string;
   clearShareIntent(key: string): Promise<void>;
+  donateSendMessage(
+    chatId: string,
+    name: string,
+    imageURL?: string,
+    content?: string,
+  ): Promise<void>;
   hasShareIntent(key: string): boolean;
 }
 

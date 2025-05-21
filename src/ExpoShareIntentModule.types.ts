@@ -1,13 +1,23 @@
 export type ChangeEventPayload = {
-  value: string;
+  data: string;
 };
 
 export type ErrorEventPayload = {
-  value: string;
+  data: string;
 };
 
 export type StateEventPayload = {
-  value: "pending" | "none";
+  data: "pending" | "none";
+};
+
+export type DonateEventPayload = {
+  data: DonateEventPayloadData;
+};
+
+export type DonateEventPayloadData = {
+  chatId: string;
+  name: string;
+  content?: string;
 };
 
 /**
@@ -117,6 +127,13 @@ export interface AndroidShareIntentFile {
   width: number | null;
   height: number | null;
   duration: number | null; // in ms
+}
+
+export interface DonateSendMessageOptions {
+  chatId: string;
+  name: string;
+  imageURL?: string;
+  content?: string;
 }
 
 export type NativeShareIntent = AndroidShareIntent | IosShareIntent;

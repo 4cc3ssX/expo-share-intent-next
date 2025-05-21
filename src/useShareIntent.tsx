@@ -1,9 +1,13 @@
 import { useLinkingURL } from "expo-linking";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Platform } from "react-native";
 
 import ExpoShareIntentModule from "./ExpoShareIntentModule";
-import { ShareIntent, ShareIntentOptions } from "./ExpoShareIntentModule.types";
+import {
+  DonateSendMessageOptions,
+  ShareIntent,
+  ShareIntentOptions,
+} from "./ExpoShareIntentModule.types";
 import { getScheme, getShareExtensionKey, parseShareIntent } from "./utils";
 
 export const SHAREINTENT_DEFAULTVALUE: ShareIntent = {
@@ -60,6 +64,25 @@ export default function useShareIntent(
         console.debug("useShareIntent[refresh] not a valid refresh url");
     }
   };
+
+  const donateSendMessage = useCallback((options: DonateSendMessageOptions) => {
+    if (!options.chatId || !options.name) {
+      console.error("useShareIntent[donateSendMessage] missing chatId or name");
+      return;
+    }
+
+    if (Platform.OS !== "ios") {
+      console.warn("useShareIntent[donateSendMessage] only available on iOS");
+      return;
+    }
+
+    ExpoShareIntentModule?.donateSendMessage(
+      options.chatId,
+      options.name,
+      options.imageURL,
+      options.content,
+    );
+  }, []);
 
   useEffect(() => {
     if (options.disabled) return;
@@ -119,7 +142,7 @@ export default function useShareIntent(
             JSON.stringify(event, null, 2),
           );
         try {
-          setSharedIntent(parseShareIntent(event.value, options));
+          setSharedIntent(parseShareIntent(event.data, options));
         } catch (e) {
           options.debug && console.error("useShareIntent[onChange]", e);
           setError("Cannot parse share intent value !");
@@ -129,8 +152,8 @@ export default function useShareIntent(
     const errorSubscription = ExpoShareIntentModule.addListener(
       "onError",
       (event) => {
-        options.debug && console.debug("useShareIntent[error]", event?.value);
-        setError(event?.value);
+        options.debug && console.debug("useShareIntent[error]", event?.data);
+        setError(event?.data);
       },
     );
     setIsReady(true);
@@ -144,6 +167,7 @@ export default function useShareIntent(
     isReady,
     hasShareIntent: isValueAvailable(shareIntent),
     shareIntent,
+    donateSendMessage,
     resetShareIntent,
     error,
   };

@@ -82,9 +82,9 @@ const linking: LinkingOptions<RootStackParamList> = {
         // REQUIRED FOR ANDROID WHEN APP IS IN BACKGROUND
         console.debug(
           "react-navigation[subscribe] shareIntentStateListener",
-          event.value,
+          event.data,
         );
-        if (event.value === "pending") {
+        if (event.data === "pending") {
           listener(`${getScheme()}://shareintent`);
         }
       },
@@ -95,7 +95,7 @@ const linking: LinkingOptions<RootStackParamList> = {
         // REQUIRED FOR IOS WHEN APP IS IN BACKGROUND
         console.debug(
           "react-navigation[subscribe] shareIntentValueListener",
-          event.value,
+          event.data,
         );
         const url = await linking.getInitialURL!();
         if (url) {
