@@ -3,7 +3,7 @@ import { ConfigPlugin, withXcodeProject } from "@expo/config-plugins";
 import {
   getShareExtensionBundledIdentifier,
   getShareExtensionName,
-} from "./constants";
+} from "./utils";
 import {
   getPreprocessorFilePath,
   getPrivacyInfoFilePath,

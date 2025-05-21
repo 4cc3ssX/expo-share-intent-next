@@ -1,6 +1,6 @@
 import { ConfigPlugin, withEntitlementsPlist } from "@expo/config-plugins";
 
-import { getAppGroup } from "./constants";
+import { getAppGroup } from "./utils";
 import { Parameters } from "../types";
 
 export const withAppEntitlements: ConfigPlugin<Parameters> = (

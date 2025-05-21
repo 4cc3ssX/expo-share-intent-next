@@ -1,11 +1,9 @@
-import plist from "@expo/plist";
 import { ConfigPlugin } from "@expo/config-plugins";
+import plist from "@expo/plist";
 import fs from "node:fs";
 import path from "node:path";
 
 import {
-  getShareExtensionName,
-  getAppGroup,
   shareExtensionEntitlementsFileName,
   shareExtensionInfoFileName,
   shareExtensionStoryBoardFileName,
@@ -13,6 +11,7 @@ import {
   shareExtensionPreprocessorFileName,
 } from "./constants";
 import { Parameters } from "../types";
+import { getAppGroup, getShareExtensionName } from "./utils";
 
 export async function writeShareExtensionFiles(
   platformProjectRoot: string,
@@ -144,6 +143,7 @@ export function getShareExtensionInfoContent(
           NSExtensionActivationSupportsWebPageWithMaxCount: 1,
         },
         NSExtensionJavaScriptPreprocessingFile: "ShareExtensionPreprocessor",
+        IntentsSupported: ["INSendMessageIntent"],
       },
       NSExtensionMainStoryboard: "MainInterface",
       NSExtensionPointIdentifier: "com.apple.share-services",

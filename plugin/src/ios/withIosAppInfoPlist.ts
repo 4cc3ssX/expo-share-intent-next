@@ -1,6 +1,6 @@
 import { ConfigPlugin, withInfoPlist } from "@expo/config-plugins";
 
-import { getAppGroup } from "./constants";
+import { getAppGroup, getUserActivityTypes } from "./utils";
 import { Parameters } from "../types";
 
 export const withIosAppInfoPlist: ConfigPlugin<Parameters> = (
@@ -13,6 +13,10 @@ export const withIosAppInfoPlist: ConfigPlugin<Parameters> = (
       appIdentifier,
       parameters,
     );
+    const userActivityTypes = (config.modResults["NSUserActivityTypes"] ??
+      []) as string[];
+    config.modResults["NSUserActivityTypes"] =
+      getUserActivityTypes(userActivityTypes);
     return config;
   });
 };

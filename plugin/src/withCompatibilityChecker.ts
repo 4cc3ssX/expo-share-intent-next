@@ -1,6 +1,6 @@
 import { ConfigPlugin, WarningAggregator } from "@expo/config-plugins";
 
-import { getShareExtensionName } from "./ios/constants";
+import { getShareExtensionName } from "./ios/utils";
 import { Parameters } from "./types";
 import packageInfo from "../../package.json";
 
