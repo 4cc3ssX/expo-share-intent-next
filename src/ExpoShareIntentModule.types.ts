@@ -129,10 +129,10 @@ export interface AndroidShareIntentFile {
   duration: number | null; // in ms
 }
 
-export interface DonateSendMessageOptions {
+export interface SendMessageOptions {
   conversationIdentifier: string;
   name: string;
-  imageURL?: string;
+  imageurl?: string;
   content?: string;
 }
 

@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 
 import {
-  DonateSendMessageOptions,
+  SendMessageOptions,
   ShareIntent,
   ShareIntentOptions,
 } from "./ExpoShareIntentModule.types";
@@ -11,7 +11,7 @@ type ShareIntentContextState = {
   isReady: boolean;
   hasShareIntent: boolean;
   shareIntent: ShareIntent;
-  donateSendMessage: (options: DonateSendMessageOptions) => void;
+  sendMessage: (options: SendMessageOptions) => void;
   resetShareIntent: (clearNativeModule?: boolean) => void;
   error: string | null;
 };
@@ -20,7 +20,7 @@ const ShareIntentContext = React.createContext<ShareIntentContextState>({
   isReady: false,
   hasShareIntent: false,
   shareIntent: SHAREINTENT_DEFAULTVALUE,
-  donateSendMessage: () => {},
+  sendMessage: () => {},
   resetShareIntent: () => {},
   error: null,
 });
@@ -42,7 +42,7 @@ export function ShareIntentProvider({
     isReady,
     hasShareIntent,
     shareIntent,
-    donateSendMessage,
+    sendMessage,
     resetShareIntent,
     error,
   } = useShareIntent(options);
@@ -53,7 +53,7 @@ export function ShareIntentProvider({
         isReady,
         hasShareIntent,
         shareIntent,
-        donateSendMessage,
+        sendMessage,
         resetShareIntent,
         error,
       }}

@@ -17,10 +17,10 @@ type ExpoShareIntentModuleEvents = {
 declare class ExpoShareIntentModuleType extends NativeModule<ExpoShareIntentModuleEvents> {
   getShareIntent(url: string): string;
   clearShareIntent(key: string): Promise<void>;
-  donateSendMessage(
+  sendMessage(
     conversationIdentifier: string,
     name: string,
-    imageURL?: string,
+    imageurl?: string,
     content?: string,
   ): Promise<void>;
   hasShareIntent(key: string): boolean;

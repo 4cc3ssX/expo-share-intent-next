@@ -29,16 +29,16 @@ public class ExpoShareIntentModule: Module {
             }
         }
 
-        AsyncFunction("donateSendMessage") {
+        AsyncFunction("sendMessage") {
             (
-                conversationIdentifier: String, name: String, imageURL: String?,
+                conversationIdentifier: String, name: String, imageurl: String?,
                 content: String?
             ) in
 
             /// Build the INPerson, optionally with the INImage
 
             var image: INImage?
-            if let url = imageURL,
+            if let url = imageurl,
                 let fetched = await createINImage(from: url)
             {
                 // we have a valid INImage from the URL
@@ -354,7 +354,7 @@ public class ExpoShareIntentModule: Module {
         if phAsset == nil {
             return nil
         }
-        return getImageURL(for: phAsset!)
+        return  (for: phAsset!)
     }
 
     private func getImageURL(for asset: PHAsset) -> String? {

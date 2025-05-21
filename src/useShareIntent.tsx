@@ -4,7 +4,7 @@ import { AppState, Platform } from "react-native";
 
 import ExpoShareIntentModule from "./ExpoShareIntentModule";
 import {
-  DonateSendMessageOptions,
+  SendMessageOptions,
   ShareIntent,
   ShareIntentOptions,
 } from "./ExpoShareIntentModule.types";
@@ -65,21 +65,21 @@ export default function useShareIntent(
     }
   };
 
-  const donateSendMessage = useCallback((options: DonateSendMessageOptions) => {
+  const sendMessage = useCallback((options: SendMessageOptions) => {
     if (!options.conversationIdentifier || !options.name) {
-      console.error("useShareIntent[donateSendMessage] missing chatId or name");
+      console.error("useShareIntent[sendMessage] missing chatId or name");
       return;
     }
 
     if (Platform.OS !== "ios") {
-      console.warn("useShareIntent[donateSendMessage] only available on iOS");
+      console.warn("useShareIntent[sendMessage] only available on iOS");
       return;
     }
 
-    ExpoShareIntentModule?.donateSendMessage(
+    ExpoShareIntentModule?.sendMessage(
       options.conversationIdentifier,
       options.name,
-      options.imageURL,
+      options.imageurl,
       options.content,
     );
   }, []);
@@ -167,7 +167,7 @@ export default function useShareIntent(
     isReady,
     hasShareIntent: isValueAvailable(shareIntent),
     shareIntent,
-    donateSendMessage,
+    sendMessage,
     resetShareIntent,
     error,
   };
