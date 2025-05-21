@@ -134,7 +134,7 @@ export interface AndroidShareIntentFile {
 }
 
 /**
- * Options for donating a conversation shortcut for Direct Share targets (Android) 
+ * Options for donating a conversation shortcut for Direct Share targets (Android)
  * or Siri Suggestions (iOS)
  */
 export interface DonateSendMessageOptions {

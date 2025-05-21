@@ -16,9 +16,9 @@ export default function HomeScreen({ navigation }: Props) {
       <Text style={styles.heading}>Welcome to Expo Share Intent Example !</Text>
       <Text>Try to share a content to access specific page</Text>
       <View style={styles.buttonContainer}>
-        <Button 
-          title="Direct Share Demo" 
-          onPress={() => navigation.navigate('Contacts')}
+        <Button
+          title="Direct Share Demo"
+          onPress={() => navigation.navigate("Contacts")}
         />
       </View>
     </View>
@@ -41,6 +41,6 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginTop: 30,
-    width: '80%',
+    width: "80%",
   },
 });

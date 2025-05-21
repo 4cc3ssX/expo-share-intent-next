@@ -75,7 +75,7 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
         console.error("donateSendMessage requires conversationId and name");
         return;
       }
-      
+
       ExpoShareIntentModule?.donateSendMessage(
         conversationId,
         name,
