@@ -297,7 +297,7 @@ public class ExpoShareIntentModule: Module {
         latestText = url.absoluteString
         return latestText.flatMap { text in
             try? ShareIntentText(
-                conversationId: self.conversationIdentifier,
+                conversationId: self.conversationId,
                 text: text,
                 type: fragment
             ).toJSON()
@@ -315,7 +315,7 @@ public class ExpoShareIntentModule: Module {
         }
 
         let sharedArray = decodeMedia(data: json)
-        self.conversationIdentifier = sharedArray.first?.conversationId
+        self.conversationId = sharedArray.first?.conversationId
         let sharedMediaFiles = sharedArray.compactMap {
             mediaFile -> SharedMediaFile? in
             guard let path = getAbsolutePath(for: mediaFile.path) else {
@@ -346,7 +346,7 @@ public class ExpoShareIntentModule: Module {
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
         return
-            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationIdentifier ?? "null")\" }"
+            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
     }
 
     /**
@@ -360,7 +360,7 @@ public class ExpoShareIntentModule: Module {
         }
 
         let sharedArray = decodeMedia(data: json)
-        self.conversationIdentifier = sharedArray.first?.conversationId
+        self.conversationId = sharedArray.first?.conversationId
         let sharedMediaFiles = sharedArray.compactMap {
             mediaFile -> SharedMediaFile? in
             guard let path = getAbsolutePath(for: mediaFile.path) else {
@@ -377,7 +377,7 @@ public class ExpoShareIntentModule: Module {
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
         return
-            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationIdentifier ?? "null")\" }"
+            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
     }
 
     /**
@@ -391,7 +391,7 @@ public class ExpoShareIntentModule: Module {
         }
 
         let sharedArray = decodeWebUrl(data: json)
-        self.conversationIdentifier = sharedArray.first?.conversationId
+        self.conversationId = sharedArray.first?.conversationId
         let sharedWebUrls = sharedArray.map {
             WebUrl(
                 url: $0.url, meta: $0.meta,
@@ -400,7 +400,7 @@ public class ExpoShareIntentModule: Module {
 
         guard let json = toJson(data: sharedWebUrls) else { return "[]" }
         return
-        "{ \"weburls\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationIdentifier ?? "null")\" }"
+        "{ \"weburls\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
     }
 
     /**
@@ -422,12 +422,12 @@ public class ExpoShareIntentModule: Module {
             return "error"
         }
 
-        self.conversationIdentifier = items.first?.conversationId
+        self.conversationId = items.first?.conversationId
         self.latestText = items.map { $0.text }.joined(separator: ",")
 
         return latestText.flatMap { text in
             try? ShareIntentText(
-                conversationId: self.conversationIdentifier, text: text,
+                conversationId: self.conversationId, text: text,
                 type: fragment
             ).toJSON()
         } ?? latestText

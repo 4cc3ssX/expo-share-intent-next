@@ -18,7 +18,7 @@ class ShareViewController: UIViewController {
   let propertyListType: String = UTType.propertyList.identifier
   let fileURLType: String = UTType.fileURL.identifier
   let pdfContentType: String = UTType.pdf.identifier
-  private var conversationIdentifier: String? = nil
+  private var conversationId: String? = nil
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -26,7 +26,7 @@ class ShareViewController: UIViewController {
     // Populate the recipient property with the metadata in case the person taps a suggestion from the share sheet.
     let intent = self.extensionContext?.intent as? INSendMessageIntent
     if intent != nil {
-      self.conversationIdentifier = intent!.conversationIdentifier
+      self.conversationId = intent!.conversationIdentifier
     }
   }
 
@@ -121,7 +121,7 @@ class ShareViewController: UIViewController {
       let payload: [SharedText] = sharedText.map {
         SharedText(
           text: $0,
-          conversationId: self.conversationIdentifier)
+          conversationId: self.conversationId)
       }
 
       saveAndRedirect(data: self.toData(data: payload), type: .text)
@@ -157,7 +157,7 @@ class ShareViewController: UIViewController {
     self.sharedWebUrl.append(
       WebUrl(
         url: url.absoluteString, meta: "",
-        conversationId: self.conversationIdentifier))
+        conversationId: self.conversationId))
 
     // If this is the last item, save and redirect
     let isLastItem = index == (content.attachments?.count)! - 1
@@ -217,7 +217,7 @@ class ShareViewController: UIViewController {
     self.sharedWebUrl.append(
       WebUrl(
         url: url, meta: meta,
-        conversationId: self.conversationIdentifier))
+        conversationId: self.conversationId))
 
     // If this is the last item, save and redirect
     let isLastItem = index == (content.attachments?.count)! - 1
@@ -348,7 +348,7 @@ class ShareViewController: UIViewController {
       duration: nil,
       mimeType: mimeType,
       type: .image,
-      conversationId: self.conversationIdentifier
+      conversationId: self.conversationId
     )
   }
 
@@ -487,7 +487,7 @@ class ShareViewController: UIViewController {
         duration: nil,
         mimeType: mimeType,
         type: .file,
-        conversationId: self.conversationIdentifier
+        conversationId: self.conversationId
       )
     )
 
@@ -631,7 +631,7 @@ class ShareViewController: UIViewController {
         fileSize: fileSize, width: trackWidth, height: trackHeight,
         duration: duration,
         mimeType: mimeType, type: .video,
-        conversationIdentifier: self.conversationIdentifier)
+        conversationId: self.conversationId)
     }
 
     var saved = false
@@ -655,7 +655,7 @@ class ShareViewController: UIViewController {
         fileSize: fileSize, width: trackWidth, height: trackHeight,
         duration: duration,
         mimeType: mimeType, type: .video,
-        conversationIdentifier: self.conversationIdentifier) : nil
+        conversationId: self.conversationId) : nil
   }
 
   private func getThumbnailPath(for url: URL) -> URL {
@@ -670,29 +670,29 @@ class ShareViewController: UIViewController {
   }
 
   class WebUrl: Codable {
-    var conversationIdentifier: String?
+    var conversationId: String?
     var url: String
     var meta: String
 
-    init(url: String, meta: String, conversationIdentifier: String?) {
+    init(url: String, meta: String, conversationId: String?) {
       self.url = url
       self.meta = meta
-      self.conversationIdentifier = conversationIdentifier
+      self.conversationId = conversationId
     }
   }
 
   class SharedText: Codable {
     var text: String
-    var conversationIdentifier: String?
+    var conversationId: String?
 
-    init(text: String, conversationIdentifier: String?) {
+    init(text: String, conversationId: String?) {
       self.text = text
-      self.conversationIdentifier = conversationIdentifier
+      self.conversationId = conversationId
     }
   }
 
   class SharedMediaFile: Codable {
-    var conversationIdentifier: String?
+    var conversationId: String?
     var path: String  // can be image, video or url path
     var thumbnail: String?  // video thumbnail
     var fileName: String  // uuid + extension
@@ -707,7 +707,7 @@ class ShareViewController: UIViewController {
       path: String, thumbnail: String?, fileName: String, fileSize: Int?,
       width: Int?, height: Int?,
       duration: Double?, mimeType: String, type: SharedMediaType,
-      conversationIdentifier: String?
+      conversationId: String?
     ) {
       self.path = path
       self.thumbnail = thumbnail
@@ -718,7 +718,7 @@ class ShareViewController: UIViewController {
       self.duration = duration
       self.mimeType = mimeType
       self.type = type
-      self.conversationIdentifier = conversationIdentifier
+      self.conversationId = conversationId
     }
   }
 
