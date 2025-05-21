@@ -1,2 +1,19 @@
-<manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Used by share target shortcuts -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <!-- For file sharing compatibility with older Android versions -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="*/*" />
+        </intent>
+    </queries>
+    
+    <!-- Needed for compatibility with ChooserTargetServiceCompat -->
+    <application>
+        <meta-data
+            android:name="android.service.chooser.chooser_target_service"
+            android:value="androidx.sharetarget.ChooserTargetServiceCompat" />
+    </application>
 </manifest>

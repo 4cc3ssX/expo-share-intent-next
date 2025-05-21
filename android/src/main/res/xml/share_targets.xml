@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Share target for text content -->
+    <share-target>
+        <!-- The target class will be dynamically set in the app at runtime -->
+        <data android:mimeType="text/plain" />
+        <category android:name="expo.modules.shareintent.category.TEXT_SHARE_TARGET" />
+    </share-target>
+    <!-- Share target for image content -->
+    <share-target>
+        <data android:mimeType="image/*" />
+        <category android:name="expo.modules.shareintent.category.TEXT_SHARE_TARGET" />
+    </share-target>
+    <!-- Share target for video content -->
+    <share-target>
+        <data android:mimeType="video/*" />
+        <category android:name="expo.modules.shareintent.category.TEXT_SHARE_TARGET" />
+    </share-target>
+    <!-- Share target for any file content -->
+    <share-target>
+        <data android:mimeType="*/*" />
+        <category android:name="expo.modules.shareintent.category.TEXT_SHARE_TARGET" />
+    </share-target>
+</shortcuts>

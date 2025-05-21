@@ -7,7 +7,13 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.database.Cursor
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -18,12 +24,26 @@ import android.provider.OpenableColumns
 import android.provider.MediaStore
 import android.util.Log
 import android.webkit.MimeTypeMap
+import androidx.core.content.ContextCompat
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.target.Target
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URL
 import java.util.Date
+import java.util.UUID
 
 /**
  * Expo module for handling shared content from other apps
@@ -43,6 +63,11 @@ class ExpoShareIntentModule : Module() {
         
     companion object {
         private var instance: ExpoShareIntentModule? = null
+        private const val TEXT_SHARE_CATEGORY = "expo.modules.shareintent.category.TEXT_SHARE_TARGET"
+        private const val SEND_MESSAGE_CAPABILITY = "actions.intent.SEND_MESSAGE"
+        private const val RECEIVE_MESSAGE_CAPABILITY = "actions.intent.RECEIVE_MESSAGE"
+        private const val ICON_SIZE = 72
+        private const val CANVAS_SIZE = 108
         
         /**
          * Notifies about received share intent with the shared content
@@ -50,7 +75,7 @@ class ExpoShareIntentModule : Module() {
          */
         private fun notifyShareIntent(value: Any) {
             notifyState("pending")
-            instance?.sendEvent("onChange", mapOf("value" to value))
+            instance?.sendEvent("onChange", mapOf("data" to value))
         }
         
         /**
@@ -58,7 +83,7 @@ class ExpoShareIntentModule : Module() {
          * @param state Current state
          */
         private fun notifyState(state: String) {
-            instance?.sendEvent("onStateChange", mapOf("value" to state))
+            instance?.sendEvent("onStateChange", mapOf("data" to state))
         }
         
         /**
@@ -66,7 +91,15 @@ class ExpoShareIntentModule : Module() {
          * @param message Error message
          */
         private fun notifyError(message: String) {
-            instance?.sendEvent("onError", mapOf("value" to message))
+            instance?.sendEvent("onError", mapOf("data" to message))
+        }
+        
+        /**
+         * Notifies about successful donate operation
+         * @param data The data associated with the donate operation
+         */
+        private fun notifyDonate(data: Map<String, String?>) {
+            instance?.sendEvent("onDonate", mapOf("data" to data))
         }
 
         /**
@@ -289,7 +322,7 @@ class ExpoShareIntentModule : Module() {
     override fun definition() = ModuleDefinition {
         Name("ExpoShareIntentModule")
 
-        Events("onChange", "onStateChange", "onError")
+        Events("onChange", "onStateChange", "onError", "onDonate")
 
         AsyncFunction("getShareIntent") { _: String ->
             // get the Intent from onCreate activity (app not running in background)
@@ -298,6 +331,10 @@ class ExpoShareIntentModule : Module() {
                 handleShareIntent(ExpoShareIntentSingleton.intent!!);
                 ExpoShareIntentSingleton.intent = null
             }
+        }
+
+        AsyncFunction("donateSendMessage") { conversationId: String, name: String, imageURL: String?, content: String? ->
+            donateSendMessage(conversationId, name, imageURL, content)
         }
 
         Function("clearShareIntent") { _: String ->
@@ -563,5 +600,285 @@ class ExpoShareIntentModule : Module() {
      */
     private fun isMediaDocument(uri: Uri): Boolean {
         return "com.android.providers.media.documents" == uri.authority
+    }
+
+    /**
+     * Creates a monogram avatar from name initials
+     * @param name Person's name
+     * @return Bitmap containing the monogram avatar
+     */
+    private fun createMonogramAvatar(name: String): Bitmap {
+        val size = CANVAS_SIZE
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        // Background fill
+        val backgroundPaint = Paint().apply {
+            color = Color.parseColor("#3498db") // Blue background
+            isAntiAlias = true
+            style = Paint.Style.FILL
+        }
+        canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), backgroundPaint)
+        
+        // Draw initials
+        val initial = name.firstOrNull()?.uppercase() ?: "?"
+        val textPaint = Paint().apply {
+            color = Color.WHITE
+            textSize = size * 0.4f
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+        }
+        
+        val textBounds = Rect()
+        textPaint.getTextBounds(initial, 0, initial.length, textBounds)
+        
+        // Center the text
+        val xPos = size / 2
+        val yPos = (size / 2 - (textPaint.descent() + textPaint.ascent()) / 2).toInt()
+        
+        canvas.drawText(initial, xPos.toFloat(), yPos.toFloat(), textPaint)
+        
+        return bitmap
+    }
+    
+    /**
+     * Creates an adaptive bitmap suitable for shortcuts
+     * @param bitmap Source bitmap to adapt
+     * @return Adapted bitmap centered in the proper canvas
+     */
+    private fun createAdaptiveBitmap(bitmap: Bitmap): Bitmap {
+        val source = if (bitmap.width > ICON_SIZE || bitmap.height > ICON_SIZE) {
+            // Scale down the bitmap
+            val scaleFactor = ICON_SIZE.toFloat() / Math.max(bitmap.width, bitmap.height)
+            val scaledWidth = (bitmap.width * scaleFactor).toInt()
+            val scaledHeight = (bitmap.height * scaleFactor).toInt()
+            Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+        } else {
+            bitmap
+        }
+        
+        // Create a canvas with appropriate size
+        val result = Bitmap.createBitmap(CANVAS_SIZE, CANVAS_SIZE, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        
+        // Fill with transparent background
+        canvas.drawColor(Color.TRANSPARENT)
+        
+        // Center the image in the canvas
+        val left = (CANVAS_SIZE - source.width) / 2
+        val top = (CANVAS_SIZE - source.height) / 2
+        
+        canvas.drawBitmap(source, left.toFloat(), top.toFloat(), null)
+        
+        return result
+    }
+    
+    /**
+     * Loads an image from URL and converts it to IconCompat
+     * @param imageUrl URL of the image to load
+     * @param name Name for fallback monogram
+     * @param callback Callback to receive the created IconCompat
+     */
+    private fun loadImageIcon(imageUrl: String?, name: String, callback: (IconCompat) -> Unit) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            // If no image URL provided, create a monogram avatar
+            val monogram = createMonogramAvatar(name)
+            val adaptiveBitmap = createAdaptiveBitmap(monogram)
+            callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
+            return
+        }
+        
+        // Check if it's a local file
+        if (imageUrl.startsWith("file://") || imageUrl.startsWith("/")) {
+            try {
+                val uri = if (imageUrl.startsWith("file://")) Uri.parse(imageUrl) else Uri.fromFile(File(imageUrl))
+                val bitmap = BitmapFactory.decodeStream(context.contentResolver.openInputStream(uri))
+                if (bitmap != null) {
+                    val adaptiveBitmap = createAdaptiveBitmap(bitmap)
+                    callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
+                    return
+                }
+            } catch (e: Exception) {
+                Log.e("ExpoShareIntent", "Error loading local image: ${e.message}")
+            }
+        }
+        
+        // Handle remote image URL
+        try {
+            val imageLoader = ImageLoader(context)
+            val request = ImageRequest.Builder(context)
+                .data(imageUrl)
+                .target(object : Target {
+                    override fun onSuccess(result: Drawable) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                // Convert drawable to bitmap
+                                val bitmap = if (result is android.graphics.drawable.BitmapDrawable) {
+                                    result.bitmap
+                                } else {
+                                    val bmp = Bitmap.createBitmap(
+                                        result.intrinsicWidth,
+                                        result.intrinsicHeight,
+                                        Bitmap.Config.ARGB_8888
+                                    )
+                                    val canvas = Canvas(bmp)
+                                    result.setBounds(0, 0, canvas.width, canvas.height)
+                                    result.draw(canvas)
+                                    bmp
+                                }
+                                
+                                val adaptiveBitmap = createAdaptiveBitmap(bitmap)
+                                withContext(Dispatchers.Main) {
+                                    callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
+                                }
+                            } catch (e: Exception) {
+                                Log.e("ExpoShareIntent", "Error processing image: ${e.message}")
+                                val fallback = createMonogramAvatar(name)
+                                val adaptiveBitmap = createAdaptiveBitmap(fallback)
+                                withContext(Dispatchers.Main) {
+                                    callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
+                                }
+                            }
+                        }
+                    }
+                    
+                    override fun onError(error: Drawable?) {
+                        val fallback = createMonogramAvatar(name)
+                        val adaptiveBitmap = createAdaptiveBitmap(fallback)
+                        callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
+                    }
+                    
+                    override fun onStart(placeholder: Drawable?) {}
+                    override fun onStop() {}
+                })
+                .build()
+            
+            imageLoader.enqueue(request)
+        } catch (e: Exception) {
+            Log.e("ExpoShareIntent", "Error loading image: ${e.message}")
+            val fallback = createMonogramAvatar(name)
+            val adaptiveBitmap = createAdaptiveBitmap(fallback)
+            callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
+        }
+    }
+    
+    /**
+     * Creates and pushes a dynamic shortcut for direct sharing
+     * 
+     * @param conversationId Unique identifier for the conversation/contact
+     * @param name Name of the person/group
+     * @param imageURL Optional URL to the profile picture
+     * @param content Optional content description
+     * @return Promise that resolves when shortcut is created
+     */
+    private fun donateSendMessage(
+        conversationId: String,
+        name: String, 
+        imageURL: String? = null,
+        content: String? = null
+    ): Promise<Unit> {
+        val promise = Promise<Unit>()
+        
+        try {
+            // Activity must be available for sharing shortcuts
+            val activity = currentActivity
+            if (activity == null) {
+                notifyError("Activity not available for sharing shortcuts")
+                promise.reject(Exception("Activity not available"))
+                return promise
+            }
+            
+            // Create intent for the shortcut
+            val targetClass = activity.javaClass
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                setClassName(activity.packageName, targetClass.name)
+                putExtra(Intent.EXTRA_SHORTCUT_ID, conversationId)
+                type = "text/plain" 
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            
+            // Shortcut categories - used to match shortcuts with share target definitions
+            val categories = setOf(TEXT_SHARE_CATEGORY)
+            
+            // Get the short label (first name or initial part of name)
+            val shortLabel = name.split(" ").firstOrNull() ?: name
+            
+            // Set up icon loading with proper callback handling
+            loadImageIcon(imageURL, name) { icon ->
+                try {
+                    // Create the shortcut with the loaded icon
+                    val shortcutInfo = ShortcutInfoCompat.Builder(context, conversationId)
+                        .setShortLabel(shortLabel)
+                        .setLongLabel(name)
+                        .setIcon(icon)
+                        .setIntent(intent)
+                        .setLongLived(true)
+                        .setCategories(categories)
+                        .addCapabilityBinding(SEND_MESSAGE_CAPABILITY)
+                        .build()
+                    
+                    // Push the dynamic shortcut
+                    ShortcutManagerCompat.pushDynamicShortcut(context, shortcutInfo)
+                    
+                    // Notify success and resolve promise
+                    val responseData = mapOf(
+                        "conversationId" to conversationId,
+                        "name" to name,
+                        "imageURL" to imageURL,
+                        "content" to content
+                    )
+                    notifyDonate(responseData)
+                    promise.resolve(Unit)
+                } catch (e: Exception) {
+                    notifyError("Error creating shortcut: ${e.message}")
+                    promise.reject(e)
+                }
+            }
+        } catch (e: Exception) {
+            notifyError("Error in donateSendMessage: ${e.message}")
+            promise.reject(e)
+        }
+        
+        return promise
+    }
+}
+
+/**
+ * Simple Promise implementation for async operations
+ */
+class Promise<T> {
+    private var resolved = false
+    private var rejected = false
+    private var resolveCallback: ((T) -> Unit)? = null
+    private var rejectCallback: ((Throwable) -> Unit)? = null
+    
+    fun resolve(value: T) {
+        if (resolved || rejected) return
+        resolved = true
+        resolveCallback?.invoke(value)
+    }
+    
+    fun reject(error: Throwable) {
+        if (resolved || rejected) return
+        rejected = true
+        rejectCallback?.invoke(error)
+    }
+    
+    fun then(onResolve: (T) -> Unit): Promise<T> {
+        if (resolved) {
+            resolveCallback?.let { onResolve(it) }
+        } else {
+            resolveCallback = onResolve
+        }
+        return this
+    }
+    
+    fun catch(onReject: (Throwable) -> Unit): Promise<T> {
+        if (rejected) {
+            rejectCallback?.let { onReject(it) }
+        } else {
+            rejectCallback = onReject
+        }
+        return this
     }
 }
