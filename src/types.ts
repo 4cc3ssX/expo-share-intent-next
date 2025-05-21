@@ -133,10 +133,26 @@ export interface AndroidShareIntentFile {
   duration: number | null; // in ms
 }
 
+/**
+ * Options for donating a conversation shortcut for Direct Share targets (Android) 
+ * or Siri Suggestions (iOS)
+ */
 export interface DonateSendMessageOptions {
+  /**
+   * Unique identifier for the conversation or contact
+   */
   conversationId: string;
+  /**
+   * Name of the person or group chat
+   */
   name: string;
+  /**
+   * Optional URL to the profile picture (local or remote)
+   */
   imageURL?: string;
+  /**
+   * Optional context or last message content
+   */
   content?: string;
 }
 

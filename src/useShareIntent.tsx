@@ -67,7 +67,7 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
   }, [disabled, debug, url, options]);
 
   /**
-   * Donate send message for Siri suggestions (iOS)
+   * Donate send message for Siri suggestions (iOS) and Direct Share targets (Android)
    */
   const donateSendMessage = useCallback(
     ({ conversationId, name, imageURL, content }: DonateSendMessageOptions) => {
@@ -75,10 +75,7 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
         console.error("donateSendMessage requires conversationId and name");
         return;
       }
-      if (Platform.OS !== "ios") {
-        console.warn("donateSendMessage is only available on iOS");
-        return;
-      }
+      
       ExpoShareIntentModule?.donateSendMessage(
         conversationId,
         name,
@@ -151,10 +148,18 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
       },
     );
 
+    const donateSub = ExpoShareIntentModule.addListener(
+      "onDonate",
+      ({ data }) => {
+        debug && console.debug("ShareIntent onDonate:", data);
+      },
+    );
+
     setIsReady(true);
     return () => {
       changeSub.remove();
       errorSub.remove();
+      donateSub.remove();
     };
   }, [disabled, debug, options]);
 
