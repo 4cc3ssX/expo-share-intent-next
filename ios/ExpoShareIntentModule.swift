@@ -211,7 +211,7 @@ public class ExpoShareIntentModule: Module {
 
     private var initialText: String? = nil
     private var latestText: String? = nil
-    private var conversationIdentifier: String? = nil
+    private var conversationId: String? = nil
 
     /**
      * Handles the shared URL and processes different types of shared content
