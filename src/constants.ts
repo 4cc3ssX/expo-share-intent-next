@@ -5,5 +5,5 @@ export const DEFAULT_INTENT: ShareIntent = {
   text: null,
   webUrl: null,
   type: null,
-  conversationIdentifier: null,
+  conversationId: null,
 };

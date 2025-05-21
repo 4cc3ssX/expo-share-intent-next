@@ -82,7 +82,7 @@ export const parseShareIntent = (
         ?.find((u) => u.startsWith("http")) || null;
     return {
       ...DEFAULT_INTENT,
-      conversationIdentifier: raw.conversationIdentifier,
+      conversationId: raw.conversationId,
       type: webUrl ? "weburl" : "text",
       text: raw.text,
       webUrl,
@@ -98,7 +98,7 @@ export const parseShareIntent = (
     const weburl = (raw as IosShareIntent).weburls?.[0]!;
     return {
       ...DEFAULT_INTENT,
-      conversationIdentifier: raw.conversationIdentifier,
+      conversationId: raw.conversationId,
       type: "weburl",
       text: weburl.url,
       webUrl: weburl.url,
@@ -124,7 +124,7 @@ export const parseShareIntent = (
 
   const result: ShareIntent = {
     ...DEFAULT_INTENT,
-    conversationIdentifier: raw.conversationIdentifier,
+    conversationId: raw.conversationId,
     files: shareFiles.length ? shareFiles : null,
     type: isMedia ? "media" : "file",
   };

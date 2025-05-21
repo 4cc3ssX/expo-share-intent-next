@@ -31,7 +31,7 @@ public class ExpoShareIntentModule: Module {
 
         AsyncFunction("donateSendMessage") {
             (
-                conversationIdentifier: String, name: String, imageURL: String?,
+                conversationId: String, name: String, imageURL: String?,
                 content: String?
             ) in
 
@@ -44,12 +44,12 @@ public class ExpoShareIntentModule: Module {
 
             let recipient = INPerson(
                 personHandle: INPersonHandle(
-                    value: conversationIdentifier, type: .unknown),
+                    value: conversationId, type: .unknown),
                 nameComponents: nil,
                 displayName: name,
                 image: image,
                 contactIdentifier: nil,
-                customIdentifier: conversationIdentifier
+                customIdentifier: conversationId
             )
 
             let groupName = INSpeakableString(spokenPhrase: name)
@@ -59,7 +59,7 @@ public class ExpoShareIntentModule: Module {
                 outgoingMessageType: .outgoingMessageText,
                 content: content,
                 speakableGroupName: groupName,
-                conversationIdentifier: conversationIdentifier,
+                conversationIdentifier: conversationId,
                 serviceName: Bundle.serviceName,
                 sender: nil,
                 attachments: nil
@@ -78,7 +78,7 @@ public class ExpoShareIntentModule: Module {
                         self.reportError(error.localizedDescription)
                     } else {
                         let json = [
-                            "conversationIdentifier": conversationIdentifier,
+                            "conversationIdentifier": conversationId,
                             "name": name,
                             "content": content,
                         ]
@@ -297,7 +297,7 @@ public class ExpoShareIntentModule: Module {
         latestText = url.absoluteString
         return latestText.flatMap { text in
             try? ShareIntentText(
-                conversationIdentifier: self.conversationIdentifier,
+                conversationId: self.conversationIdentifier,
                 text: text,
                 type: fragment
             ).toJSON()
@@ -315,6 +315,7 @@ public class ExpoShareIntentModule: Module {
         }
 
         let sharedArray = decodeMedia(data: json)
+        self.conversationIdentifier = sharedArray.first?.conversationId
         let sharedMediaFiles = sharedArray.compactMap {
             mediaFile -> SharedMediaFile? in
             guard let path = getAbsolutePath(for: mediaFile.path) else {
@@ -331,7 +332,7 @@ public class ExpoShareIntentModule: Module {
                     height: mediaFile.height,
                     duration: mediaFile.duration, mimeType: mediaFile.mimeType,
                     type: mediaFile.type,
-                    conversationIdentifier: mediaFile.conversationIdentifier)
+                    conversationId: mediaFile.conversationId)
             }
 
             return SharedMediaFile(
@@ -340,11 +341,12 @@ public class ExpoShareIntentModule: Module {
                 height: mediaFile.height,
                 duration: mediaFile.duration, mimeType: mediaFile.mimeType,
                 type: mediaFile.type,
-                conversationIdentifier: mediaFile.conversationIdentifier)
+                conversationId: mediaFile.conversationId)
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
-        return "{ \"files\": \(json), \"type\": \"\(fragment)\" }"
+        return
+            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationIdentifier ?? "null")\" }"
     }
 
     /**
@@ -358,6 +360,7 @@ public class ExpoShareIntentModule: Module {
         }
 
         let sharedArray = decodeMedia(data: json)
+        self.conversationIdentifier = sharedArray.first?.conversationId
         let sharedMediaFiles = sharedArray.compactMap {
             mediaFile -> SharedMediaFile? in
             guard let path = getAbsolutePath(for: mediaFile.path) else {
@@ -369,11 +372,12 @@ public class ExpoShareIntentModule: Module {
                 fileSize: mediaFile.fileSize, width: nil, height: nil,
                 duration: nil,
                 mimeType: mediaFile.mimeType, type: mediaFile.type,
-                conversationIdentifier: mediaFile.conversationIdentifier)
+                conversationId: mediaFile.conversationId)
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
-        return "{ \"files\": \(json), \"type\": \"\(fragment)\" }"
+        return
+            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationIdentifier ?? "null")\" }"
     }
 
     /**
@@ -387,14 +391,16 @@ public class ExpoShareIntentModule: Module {
         }
 
         let sharedArray = decodeWebUrl(data: json)
+        self.conversationIdentifier = sharedArray.first?.conversationId
         let sharedWebUrls = sharedArray.map {
             WebUrl(
                 url: $0.url, meta: $0.meta,
-                conversationIdentifier: $0.conversationIdentifier)
+                conversationId: $0.conversationId)
         }
 
         guard let json = toJson(data: sharedWebUrls) else { return "[]" }
-        return "{ \"weburls\": \(json), \"type\": \"\(fragment)\" }"
+        return
+        "{ \"weburls\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationIdentifier ?? "null")\" }"
     }
 
     /**
@@ -416,12 +422,12 @@ public class ExpoShareIntentModule: Module {
             return "error"
         }
 
-        self.conversationIdentifier = items.first?.conversationIdentifier
+        self.conversationIdentifier = items.first?.conversationId
         self.latestText = items.map { $0.text }.joined(separator: ",")
 
         return latestText.flatMap { text in
             try? ShareIntentText(
-                conversationIdentifier: self.conversationIdentifier, text: text,
+                conversationId: self.conversationIdentifier, text: text,
                 type: fragment
             ).toJSON()
         } ?? latestText
@@ -500,35 +506,35 @@ public class ExpoShareIntentModule: Module {
     }
 
     struct ShareIntentText: Codable {
-        let conversationIdentifier: String?
+        let conversationId: String?
         let text: String
         let type: String  // text / weburl
     }
 
     struct WebUrl: Codable {
-        var conversationIdentifier: String?
+        var conversationId: String?
         var url: String
         var meta: String
 
-        init(url: String, meta: String, conversationIdentifier: String?) {
+        init(url: String, meta: String, conversationId: String?) {
             self.url = url
             self.meta = meta
-            self.conversationIdentifier = conversationIdentifier
+            self.conversationId = conversationId
         }
     }
 
     class SharedText: Codable {
         var text: String
-        var conversationIdentifier: String
+        var conversationId: String
 
-        init(text: String, conversationIdentifier: String) {
+        init(text: String, conversationId: String) {
             self.text = text
-            self.conversationIdentifier = conversationIdentifier
+            self.conversationId = conversationId
         }
     }
 
     class SharedMediaFile: Codable {
-        var conversationIdentifier: String?
+        var conversationId: String?
         var path: String  // can be image, video or url path
         var thumbnail: String?  // video thumbnail
         var fileName: String  // uuid + extension
@@ -544,7 +550,7 @@ public class ExpoShareIntentModule: Module {
             width: Int?,
             height: Int?, duration: Double?, mimeType: String,
             type: SharedMediaType,
-            conversationIdentifier: String?
+            conversationId: String?
         ) {
             self.path = path
             self.thumbnail = thumbnail
@@ -555,7 +561,7 @@ public class ExpoShareIntentModule: Module {
             self.duration = duration
             self.mimeType = mimeType
             self.type = type
-            self.conversationIdentifier = conversationIdentifier
+            self.conversationId = conversationId
         }
     }
 

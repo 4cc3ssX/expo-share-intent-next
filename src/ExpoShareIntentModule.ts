@@ -18,7 +18,7 @@ declare class ExpoShareIntentModuleType extends NativeModule<ExpoShareIntentModu
   getShareIntent(url: string): string;
   clearShareIntent(key: string): Promise<void>;
   donateSendMessage(
-    conversationIdentifier: string,
+    conversationId: string,
     name: string,
     imageURL?: string,
     content?: string,

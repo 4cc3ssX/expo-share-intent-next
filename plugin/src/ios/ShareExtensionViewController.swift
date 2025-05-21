@@ -121,7 +121,7 @@ class ShareViewController: UIViewController {
       let payload: [SharedText] = sharedText.map {
         SharedText(
           text: $0,
-          conversationIdentifier: self.conversationIdentifier)
+          conversationId: self.conversationIdentifier)
       }
 
       saveAndRedirect(data: self.toData(data: payload), type: .text)
@@ -157,7 +157,7 @@ class ShareViewController: UIViewController {
     self.sharedWebUrl.append(
       WebUrl(
         url: url.absoluteString, meta: "",
-        conversationIdentifier: self.conversationIdentifier))
+        conversationId: self.conversationIdentifier))
 
     // If this is the last item, save and redirect
     let isLastItem = index == (content.attachments?.count)! - 1
@@ -217,7 +217,7 @@ class ShareViewController: UIViewController {
     self.sharedWebUrl.append(
       WebUrl(
         url: url, meta: meta,
-        conversationIdentifier: self.conversationIdentifier))
+        conversationId: self.conversationIdentifier))
 
     // If this is the last item, save and redirect
     let isLastItem = index == (content.attachments?.count)! - 1
@@ -348,7 +348,7 @@ class ShareViewController: UIViewController {
       duration: nil,
       mimeType: mimeType,
       type: .image,
-      conversationIdentifier: self.conversationIdentifier
+      conversationId: self.conversationIdentifier
     )
   }
 
@@ -487,7 +487,7 @@ class ShareViewController: UIViewController {
         duration: nil,
         mimeType: mimeType,
         type: .file,
-        conversationIdentifier: self.conversationIdentifier
+        conversationId: self.conversationIdentifier
       )
     )
 

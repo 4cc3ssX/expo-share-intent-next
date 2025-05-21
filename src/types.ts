@@ -15,7 +15,7 @@ export type DonateEventPayload = {
 };
 
 export type DonateEventPayloadData = {
-  conversationIdentifier: string;
+  conversationId: string;
   name: string;
   content?: string;
 };
@@ -58,7 +58,7 @@ export type ShareIntentMeta = Record<string, string | undefined> & {
  * Base type for what shared content is common between both platforms.
  */
 interface BaseShareIntent {
-  conversationIdentifier?: string | null;
+  conversationId?: string | null;
   meta?: ShareIntentMeta | null;
   text?: string | null;
 }
@@ -134,7 +134,7 @@ export interface AndroidShareIntentFile {
 }
 
 export interface DonateSendMessageOptions {
-  conversationIdentifier: string;
+  conversationId: string;
   name: string;
   imageURL?: string;
   content?: string;
