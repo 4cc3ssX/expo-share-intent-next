@@ -749,7 +749,7 @@ class ExpoShareIntentModule : Module() {
                     }
                     
                     override fun onStart(placeholder: Drawable?) {}
-                    override fun onStop() {}
+                    // Note: onStop is not needed in Coil 2.4.0
                 })
                 .build()
             
@@ -851,22 +851,26 @@ class Promise<T> {
     private var rejected = false
     private var resolveCallback: ((T) -> Unit)? = null
     private var rejectCallback: ((Throwable) -> Unit)? = null
+    private var resolveValue: T? = null
+    private var rejectValue: Throwable? = null
     
     fun resolve(value: T) {
         if (resolved || rejected) return
         resolved = true
+        resolveValue = value
         resolveCallback?.invoke(value)
     }
     
     fun reject(error: Throwable) {
         if (resolved || rejected) return
         rejected = true
+        rejectValue = error
         rejectCallback?.invoke(error)
     }
     
     fun then(onResolve: (T) -> Unit): Promise<T> {
         if (resolved) {
-            resolveCallback?.let { onResolve(it) }
+            resolveCallback?.let { onResolve(resolveValue!!) }
         } else {
             resolveCallback = onResolve
         }
@@ -875,7 +879,7 @@ class Promise<T> {
     
     fun catch(onReject: (Throwable) -> Unit): Promise<T> {
         if (rejected) {
-            rejectCallback?.let { onReject(it) }
+            rejectCallback?.let { onReject(rejectValue!!) }
         } else {
             rejectCallback = onReject
         }

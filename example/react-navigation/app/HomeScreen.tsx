@@ -1,7 +1,13 @@
 import { useShareIntentContext } from "expo-share-intent-next";
-import { Text, View, StyleSheet } from "react-native";
+import { Text, View, StyleSheet, Button } from "react-native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "./types";
 
-export default function HomeScreen() {
+interface Props {
+  navigation: StackNavigationProp<RootStackParamList, "Home">;
+}
+
+export default function HomeScreen({ navigation }: Props) {
   const { shareIntent } = useShareIntentContext();
   console.log("HomeScreen", shareIntent);
 
@@ -9,6 +15,12 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <Text style={styles.heading}>Welcome to Expo Share Intent Example !</Text>
       <Text>Try to share a content to access specific page</Text>
+      <View style={styles.buttonContainer}>
+        <Button 
+          title="Direct Share Demo" 
+          onPress={() => navigation.navigate('Contacts')}
+        />
+      </View>
     </View>
   );
 }
@@ -26,5 +38,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 10,
+  },
+  buttonContainer: {
+    marginTop: 30,
+    width: '80%',
   },
 });
