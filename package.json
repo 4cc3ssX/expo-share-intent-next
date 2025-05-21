@@ -2,22 +2,21 @@
   "name": "expo-share-intent-next",
   "version": "4.0.0",
   "description": "Use native share intent for ios and android with expo",
-  "homepage": "https://github.com/4cc3ssX/expo-share-intent-next/",
+  "homepage": "https://github.com/eatmatch/expo-share-intent-next/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/4cc3ssX/expo-share-intent-next.git"
+    "url": "git+https://github.com/eatmatch/expo-share-intent-next.git"
   },
-  "author": "4cc3ssX (https://github.com/4cc3ssX)",
+  "author": "eatmatch (https://github.com/eatmatch)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/4cc3ssX/expo-share-intent-next/issues"
+    "url": "https://github.com/eatmatch/expo-share-intent-next/issues"
   },
   "funding": [
     {
       "type": "github",
-      "url": "https://github.com/sponsors/4cc3ssX"
-    },
-    "https://www.buymeacoffee.com/ryamjs.dev"
+      "url": "https://github.com/sponsors/eatmatch"
+    }
   ],
   "keywords": [
     "react-native",

@@ -48,7 +48,7 @@ export const withCompatibilityChecker: ConfigPlugin<Parameters> = (
       );
     if (extraAppExtension && extraAppExtension.length > 1) {
       throw new Error(
-        `[${packageInfo.name}] Incompatibility found, you have more than one appExtensions for "${getShareExtensionName(params)}" (${extraAppExtension.length}). Please remove all "eas.build.experimental.ios.appExtensions" with targetName "${getShareExtensionName(params)}" in your app.json! (see https://github.com/4cc3ssX/expo-share-intent-next?tab=readme-ov-file#ios-extension-target)`,
+        `[${packageInfo.name}] Incompatibility found, you have more than one appExtensions for "${getShareExtensionName(params)}" (${extraAppExtension.length}). Please remove all "eas.build.experimental.ios.appExtensions" with targetName "${getShareExtensionName(params)}" in your app.json! (see https://github.com/eatmatch/expo-share-intent-next?tab=readme-ov-file#ios-extension-target)`,
       );
     }
 

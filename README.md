@@ -3,7 +3,7 @@
 ![npm](https://img.shields.io/npm/v/expo-share-intent-next.svg)
 ![License](https://img.shields.io/npm/l/expo-share-intent-next.svg)
 ![Downloads](https://img.shields.io/npm/dm/expo-share-intent-next.svg)
-![GitHub stars](https://img.shields.io/github/stars/4cc3ssX/expo-share-intent-next.svg)
+![GitHub stars](https://img.shields.io/github/stars/eatmatch/expo-share-intent-next.svg)
 
 Allow sharing **URL, text, images, videos and files** to your **iOS** and **Android** app, using a simple high-performance native module for Expo (React Native).
 
@@ -52,7 +52,7 @@ npm install expo-share-intent-next
 
 For the moment this package need a post-install script
 
-- copy the [xcode patch](https://github.com/4cc3ssX/expo-share-intent-next/blob/main/example/basic/patches/xcode%2B3.0.1.patch) in you `patches` project directory (like example)
+- copy the [xcode patch](https://github.com/eatmatch/expo-share-intent-next/blob/main/example/basic/patches/xcode%2B3.0.1.patch) in you `patches` project directory (like example)
 - add post-install script to `package.json`
 
 ```json
@@ -68,7 +68,7 @@ For the moment this package need a post-install script
 yarn add patch-package
 ```
 
-> More info in [#13](https://github.com/4cc3ssX/expo-share-intent-next/issues/13) and [FAQ](https://github.com/4cc3ssX/expo-share-intent-next/edit/main/README.md#config-sync-failed)
+> More info in [#13](https://github.com/eatmatch/expo-share-intent-next/issues/13) and [FAQ](https://github.com/eatmatch/expo-share-intent-next/edit/main/README.md#config-sync-failed)
 
 **Requirement: `expo-linking`**
 
@@ -106,7 +106,7 @@ expo run:ios
 expo run:android
 ```
 
-> We cannot use expo go with this package, more info [here](https://github.com/4cc3ssX/expo-share-intent-next?tab=readme-ov-file#expo-go-)
+> We cannot use expo go with this package, more info [here](https://github.com/eatmatch/expo-share-intent-next?tab=readme-ov-file#expo-go-)
 
 ## Usage
 
@@ -121,7 +121,7 @@ const { hasShareIntent, shareIntent, resetShareIntent, error } =
   useShareIntent();
 ```
 
-See [App.tsx ](https://github.com/4cc3ssX/expo-share-intent-next/blob/main/example/basic/App.tsx) for more details
+See [App.tsx ](https://github.com/eatmatch/expo-share-intent-next/blob/main/example/basic/App.tsx) for more details
 
 #### Use the Provider in your App
 
@@ -188,7 +188,7 @@ Simply choose content types you need :
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | iosActivationRules            | Allow **text** sharing with `"NSExtensionActivationSupportsText": true`<br/>**Url** sharing with `"NSExtensionActivationSupportsWebURLWithMaxCount": 1` and `"NSExtensionActivationSupportsWebPageWithMaxCount": 1`<br/>**Images** sharing with `"NSExtensionActivationSupportsImageWithMaxCount": 1`<br/>**Videos** sharing with `"NSExtensionActivationSupportsMovieWithMaxCount": 1`<br/>**Files and audio** sharing with `"NSExtensionActivationSupportsFileWithMaxCount": 1`<br/>_default value_: `{ "NSExtensionActivationSupportsWebURLWithMaxCount": 1, "NSExtensionActivationSupportsWebPageWithMaxCount": 1 }"`<br/>_More info in apple developper doc [here](https://developer.apple.com/documentation/bundleresources/information_property_list/nsextension/nsextensionattributes/nsextensionactivationrule)_<br/>you can also provide a custom query (ex: `"iosActivationRules": "SUBQUERY (...)"`) |
 | iosShareExtensionName         | override `CFBundleDisplayName` the extension `info.plist`, also used as extension name for xcode target (ex: `ExpoShareIntent Example Extension`, folder: `ExpoShareIntentExampleExtension`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| iosAppGroupIdentifier         | custom application group identifier for `com.apple.security.application-groups` (ex: `group.custom.exposhareintent.example`) cf [#94](https://github.com/4cc3ssX/expo-share-intent-next/issues/94)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| iosAppGroupIdentifier         | custom application group identifier for `com.apple.security.application-groups` (ex: `group.custom.exposhareintent.example`) cf [#94](https://github.com/eatmatch/expo-share-intent-next/issues/94)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | androidIntentFilters          | **one file sharing** array of MIME types :`"text/*"` / `"image/*"` / `"video/*"` / `"*/*"`<br/>_default value_: `["text/*"]` (text and url)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | androidMultiIntentFilters     | **multiple files sharing** array of MIME types : `"image/*"` / `"video/*"` / `"audio/*`/ `"*/*"`<br/>_default value_: `[]`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | androidMainActivityAttributes | _default value_: `{ "android:launchMode": "singleTask" }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -200,13 +200,13 @@ Simply choose content types you need :
 
 With `expo-router` you need to handle loading elements on [Layout](https://docs.expo.dev/routing/appearance/). It's the only way to call the native module using deeplink url.
 
-An example is available with Expo Router v3 in [example/expo-router](https://github.com/4cc3ssX/expo-share-intent-next/tree/main/example/expo-router/)
+An example is available with Expo Router v3 in [example/expo-router](https://github.com/eatmatch/expo-share-intent-next/tree/main/example/expo-router/)
 
 ### React Navigation
 
 If you want to handle share intent with React Navigation v6, you must use the `ShareIntentProvider` and add a custom mapping function in your linking configuration.
 
-Take a look at the example in [example/react-navigation](https://github.com/4cc3ssX/expo-share-intent-next/tree/main/example/react-navigation/).
+Take a look at the example in [example/react-navigation](https://github.com/eatmatch/expo-share-intent-next/tree/main/example/react-navigation/).
 
 ## Troubleshooting - FAQ
 
@@ -216,7 +216,7 @@ When building on EAS you should only have **one** extension target (during crede
 
 To avoid expo auto configuration to add an experimental "appExtensions" to `app.json` you must manually configure your eas build (projectId in `app.json` and a `eas.json` file).
 
-More details in [#1](https://github.com/4cc3ssX/expo-share-intent-next-demo/issues/1)
+More details in [#1](https://github.com/eatmatch/expo-share-intent-next-demo/issues/1)
 
 ### Config sync failed
 
@@ -228,7 +228,7 @@ $ yarn prebuild
 TypeError: [ios.xcodeproj]: withIosXcodeprojBaseMod: Cannot read properties of null (reading 'path')
 ```
 
-This package need a post-install script, see `xcode+3.0.1.patch` file in [example/patches](https://github.com/4cc3ssX/expo-share-intent-next/tree/main/example/basic/patches) (more info [#31](https://github.com/4cc3ssX/expo-share-intent-next-demo/issues/31) and [#13](https://github.com/4cc3ssX/expo-share-intent-next/issues/13))
+This package need a post-install script, see `xcode+3.0.1.patch` file in [example/patches](https://github.com/eatmatch/expo-share-intent-next/tree/main/example/basic/patches) (more info [#31](https://github.com/eatmatch/expo-share-intent-next-demo/issues/31) and [#13](https://github.com/eatmatch/expo-share-intent-next/issues/13))
 
 ### Expo Go ?
 
@@ -271,22 +271,10 @@ This project does not and will not support the iOS custom view (native view in t
 
 If iOS Custom view is a must have feature for you, simply disable iOS configuration of this plugin in your `app.json` ([`disableIOS: true`](#customize-content-types-in-appjson)) and configure the [`expo-share-extension`](https://github.com/MaxAst/expo-share-extension) package.
 
-> for archive a POC was made on this [PR](https://github.com/4cc3ssX/expo-share-intent-next/pull/138)
+> for archive a POC was made on this [PR](https://github.com/eatmatch/expo-share-intent-next/pull/138)
 
 ### iOS Context Menu ?
 
 This project does not and will not support the iOS Context Menu!
 
 > Even if it sounds interesting, the implementation is too specific for each use case and would require a separate project.
-
-## Support
-
-Enjoying this project? Wanna show some love? Drop a star and consider buying me a coffee to keep me fueled and motivated for the next releases
-
-<a href="https://www.buymeacoffee.com/ryamjs.dev" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
-
-Are you using expo-share-intent-next at work? Please consider [sponsoring me](https://github.com/sponsors/4cc3ssX)!
-
-## Thanks
-
-Special thanks to [expo-config-plugin-ios-share-extension](https://github.com/timedtext/expo-config-plugin-ios-share-extension) and [react-native-receive-sharing-intent](https://github.com/ajith-ab/react-native-receive-sharing-intent), on which this one is very inspired.
