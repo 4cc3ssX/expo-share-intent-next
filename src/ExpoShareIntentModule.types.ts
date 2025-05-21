@@ -15,7 +15,7 @@ export type DonateEventPayload = {
 };
 
 export type DonateEventPayloadData = {
-  chatId: string;
+  conversationIdentifier: string;
   name: string;
   content?: string;
 };
@@ -130,7 +130,7 @@ export interface AndroidShareIntentFile {
 }
 
 export interface DonateSendMessageOptions {
-  chatId: string;
+  conversationIdentifier: string;
   name: string;
   imageURL?: string;
   content?: string;

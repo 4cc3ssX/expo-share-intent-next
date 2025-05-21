@@ -31,7 +31,7 @@ public class ExpoShareIntentModule: Module {
 
         AsyncFunction("donateSendMessage") {
             (
-                chatId: String, name: String, imageURL: String?,
+                conversationIdentifier: String, name: String, imageURL: String?,
                 content: String?
             ) in
 
@@ -49,12 +49,12 @@ public class ExpoShareIntentModule: Module {
             }
 
             let recipient = INPerson(
-                personHandle: INPersonHandle(value: chatId, type: .unknown),
+                personHandle: INPersonHandle(value: conversationIdentifier, type: .unknown),
                 nameComponents: nil,
                 displayName: name,
                 image: image,
                 contactIdentifier: nil,
-                customIdentifier: chatId
+                customIdentifier: conversationIdentifier
             )
 
             let groupName = INSpeakableString(spokenPhrase: name)
@@ -64,7 +64,7 @@ public class ExpoShareIntentModule: Module {
                 outgoingMessageType: .outgoingMessageText,
                 content: content,
                 speakableGroupName: groupName,
-                conversationIdentifier: chatId,
+                conversationIdentifier: conversationIdentifier,
                 serviceName: Bundle.serviceName,
                 sender: nil,
                 attachments: nil
@@ -78,11 +78,12 @@ public class ExpoShareIntentModule: Module {
             try await withCheckedThrowingContinuation {
                 (continuation: CheckedContinuation<Void, Error>) in
                 interaction.donate { error in
+                    print("donated \(String(describing: error))")
                     if let error = error {
                         self.reportError(error.localizedDescription)
                     } else {
                         let json = [
-                            "chatId": chatId,
+                            "conversationIdentifier": conversationIdentifier,
                             "name": name,
                             "content": content,
                         ]

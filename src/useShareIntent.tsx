@@ -66,7 +66,7 @@ export default function useShareIntent(
   };
 
   const donateSendMessage = useCallback((options: DonateSendMessageOptions) => {
-    if (!options.chatId || !options.name) {
+    if (!options.conversationIdentifier || !options.name) {
       console.error("useShareIntent[donateSendMessage] missing chatId or name");
       return;
     }
@@ -77,7 +77,7 @@ export default function useShareIntent(
     }
 
     ExpoShareIntentModule?.donateSendMessage(
-      options.chatId,
+      options.conversationIdentifier,
       options.name,
       options.imageURL,
       options.content,
