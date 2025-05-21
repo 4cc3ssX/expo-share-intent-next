@@ -6,18 +6,23 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
 import android.database.Cursor
 import android.graphics.BitmapFactory
+import android.graphics.drawable.Icon
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.Parcelable
 import android.provider.DocumentsContract
-import android.provider.OpenableColumns
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.MimeTypeMap
+import java.net.HttpURLConnection
+import java.net.URL
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -25,25 +30,24 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Date
 
-/**
- * Expo module for handling shared content from other apps
- */
+/** Expo module for handling shared content from other apps */
 class ExpoShareIntentModule : Module() {
-    /**
-     * The application context
-     */
+    /** The application context */
     private val context: Context
         get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-        
-    /**
-     * Current activity if available
-     */
+
+    /** Current activity if available */
     private val currentActivity: Activity?
         get() = appContext.currentActivity
         
+    init {
+        // Set the static instance to this module
+        instance = this
+    }
+
     companion object {
         private var instance: ExpoShareIntentModule? = null
-        
+
         /**
          * Notifies about received share intent with the shared content
          * @param value The shared content details
@@ -52,7 +56,7 @@ class ExpoShareIntentModule : Module() {
             notifyState("pending")
             instance?.sendEvent("onChange", mapOf("value" to value))
         }
-        
+
         /**
          * Notifies about state changes
          * @param state Current state
@@ -60,7 +64,7 @@ class ExpoShareIntentModule : Module() {
         private fun notifyState(state: String) {
             instance?.sendEvent("onStateChange", mapOf("value" to state))
         }
-        
+
         /**
          * Notifies about errors
          * @param message Error message
@@ -82,23 +86,24 @@ class ExpoShareIntentModule : Module() {
                 notifyError("Cannot get resolver (getFileInfo)")
                 return createBasicFileInfo(uri)
             }
-            
+
             // Query file metadata
             return try {
-                val queryResult = resolver.query(uri, null, null, null, null)
-                    ?: return createBasicFileInfo(uri)
-                
+                val queryResult =
+                        resolver.query(uri, null, null, null, null)
+                                ?: return createBasicFileInfo(uri)
+
                 // Extract basic file information
                 queryResult.use { cursor ->
                     cursor.moveToFirst()
                     val fileInfo = extractFileInfoFromCursor(cursor, resolver, uri)
-                    
+
                     // Extract media-specific information based on mime type
                     when {
-                        fileInfo["mimeType"]?.startsWith("image/") == true -> 
-                            fileInfo + extractImageDimensions(resolver, uri)
-                        fileInfo["mimeType"]?.startsWith("video/") == true -> 
-                            fileInfo + extractVideoMetadata(uri)
+                        fileInfo["mimeType"]?.startsWith("image/") == true ->
+                                fileInfo + extractImageDimensions(resolver, uri)
+                        fileInfo["mimeType"]?.startsWith("video/") == true ->
+                                fileInfo + extractVideoMetadata(uri)
                         else -> fileInfo
                     }
                 }
@@ -107,91 +112,86 @@ class ExpoShareIntentModule : Module() {
                 createBasicFileInfo(uri)
             }
         }
-        
-        /**
-         * Creates basic file info when detailed info can't be retrieved
-         */
-        private fun createBasicFileInfo(uri: Uri): Map<String, String?> = mapOf(
-            "contentUri" to uri.toString(),
-            "filePath" to instance?.getAbsolutePath(uri)
-        )
-        
-        /**
-         * Extracts basic file information from cursor
-         */
+
+        /** Creates basic file info when detailed info can't be retrieved */
+        private fun createBasicFileInfo(uri: Uri): Map<String, String?> =
+                mapOf("contentUri" to uri.toString(), "filePath" to instance?.getAbsolutePath(uri))
+
+        /** Extracts basic file information from cursor */
         @SuppressLint("Range")
         private fun extractFileInfoFromCursor(
-            cursor: Cursor, 
-            resolver: ContentResolver, 
-            uri: Uri
-        ): Map<String, String?> = mapOf(
-            "contentUri" to uri.toString(),
-            "filePath" to instance?.getAbsolutePath(uri),
-            "fileName" to cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)),
-            "fileSize" to cursor.getString(cursor.getColumnIndex(OpenableColumns.SIZE)),
-            "mimeType" to resolver.getType(uri)
-        )
-        
-        /**
-         * Gets the content resolver from instance
-         */
-        private fun getContentResolver(): ContentResolver? = 
-            instance?.currentActivity?.contentResolver ?: instance?.context?.contentResolver
-        
-        /**
-         * Extracts image dimensions from an image URI
-         */
-        private fun extractImageDimensions(resolver: ContentResolver, uri: Uri): Map<String, String?> {
-            return try {
-                val options = BitmapFactory.Options().apply {
-                    inJustDecodeBounds = true
-                }
-                BitmapFactory.decodeStream(resolver.openInputStream(uri), null, options)
-                
+                cursor: Cursor,
+                resolver: ContentResolver,
+                uri: Uri
+        ): Map<String, String?> =
                 mapOf(
-                    "width" to options.outWidth.toString(),
-                    "height" to options.outHeight.toString()
+                        "contentUri" to uri.toString(),
+                        "filePath" to instance?.getAbsolutePath(uri),
+                        "fileName" to
+                                cursor.getString(
+                                        cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                                ),
+                        "fileSize" to cursor.getString(cursor.getColumnIndex(OpenableColumns.SIZE)),
+                        "mimeType" to resolver.getType(uri)
+                )
+
+        /** Gets the content resolver from instance */
+        private fun getContentResolver(): ContentResolver? =
+                instance?.currentActivity?.contentResolver ?: instance?.context?.contentResolver
+
+        /** Extracts image dimensions from an image URI */
+        private fun extractImageDimensions(
+                resolver: ContentResolver,
+                uri: Uri
+        ): Map<String, String?> {
+            return try {
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeStream(resolver.openInputStream(uri), null, options)
+
+                mapOf(
+                        "width" to options.outWidth.toString(),
+                        "height" to options.outHeight.toString()
                 )
             } catch (e: Exception) {
-                mapOf(
-                    "width" to null,
-                    "height" to null
-                )
+                mapOf("width" to null, "height" to null)
             }
         }
-        
-        /**
-         * Extracts video metadata from a video URI
-         */
+
+        /** Extracts video metadata from a video URI */
         private fun extractVideoMetadata(uri: Uri): Map<String, String?> {
             return try {
                 val filePath = instance?.getAbsolutePath(uri) ?: return emptyMap()
                 val retriever = MediaMetadataRetriever()
                 retriever.setDataSource(filePath)
-                
+
                 // Extract basic dimensions
-                var width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
-                var height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
-                
+                var width =
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                var height =
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+
                 // Check orientation and flip dimensions if needed
-                val metaRotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toInt() ?: 0
+                val metaRotation =
+                        retriever
+                                .extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+                                ?.toInt()
+                                ?: 0
                 if (metaRotation == 90 || metaRotation == 270) {
                     val temp = width
                     width = height
                     height = temp
                 }
-                
+
                 mapOf(
-                    "width" to width,
-                    "height" to height,
-                    "duration" to retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                        "width" to width,
+                        "height" to height,
+                        "duration" to
+                                retriever.extractMetadata(
+                                        MediaMetadataRetriever.METADATA_KEY_DURATION
+                                )
                 )
             } catch (e: Exception) {
-                mapOf(
-                    "width" to null,
-                    "height" to null,
-                    "duration" to null
-                )
+                mapOf("width" to null, "height" to null, "duration" to null)
             }
         }
 
@@ -202,54 +202,52 @@ class ExpoShareIntentModule : Module() {
         fun handleShareIntent(intent: Intent) {
             // Early return if no type
             val intentType = intent.type ?: return
-            
+
             when {
                 // Handle text/plain content
                 intentType.startsWith("text/plain") -> handleTextShare(intent)
-                
+
                 // Handle file content
                 else -> handleFileShare(intent)
             }
         }
-        
-        /**
-         * Handles text or URL sharing
-         */
+
+        /** Handles text or URL sharing */
         private fun handleTextShare(intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SEND -> {
-                    notifyShareIntent(mapOf(
-                        "text" to intent.getStringExtra(Intent.EXTRA_TEXT),
-                        "type" to "text",
-                        "meta" to mapOf(
-                            "title" to intent.getCharSequenceExtra(Intent.EXTRA_TITLE),
-                        )
-                    ))
+                    notifyShareIntent(
+                            mapOf(
+                                    "text" to intent.getStringExtra(Intent.EXTRA_TEXT),
+                                    "type" to "text",
+                                    "meta" to
+                                            mapOf(
+                                                    "title" to
+                                                            intent.getCharSequenceExtra(
+                                                                    Intent.EXTRA_TITLE
+                                                            ),
+                                            )
+                            )
+                    )
                 }
                 Intent.ACTION_VIEW -> {
-                    notifyShareIntent(mapOf(
-                        "text" to intent.dataString, 
-                        "type" to "text"
-                    ))
+                    notifyShareIntent(mapOf("text" to intent.dataString, "type" to "text"))
                 }
                 else -> {
                     notifyError("Invalid action for text sharing: ${intent.action}")
                 }
             }
         }
-        
-        /**
-         * Handles file sharing (single or multiple)
-         */
+
+        /** Handles file sharing (single or multiple) */
         private fun handleFileShare(intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SEND -> {
                     val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM)
                     if (uri != null) {
-                        notifyShareIntent(mapOf(
-                            "files" to arrayOf(getFileInfo(uri)), 
-                            "type" to "file"
-                        ))
+                        notifyShareIntent(
+                                mapOf("files" to arrayOf(getFileInfo(uri)), "type" to "file")
+                        )
                     } else {
                         notifyError("Empty uri for file sharing: ${intent.action}")
                     }
@@ -257,10 +255,9 @@ class ExpoShareIntentModule : Module() {
                 Intent.ACTION_SEND_MULTIPLE -> {
                     val uris = intent.parcelableArrayList<Uri>(Intent.EXTRA_STREAM)
                     if (uris != null) {
-                        notifyShareIntent(mapOf(
-                            "files" to uris.map { getFileInfo(it) }, 
-                            "type" to "file"
-                        ))
+                        notifyShareIntent(
+                                mapOf("files" to uris.map { getFileInfo(it) }, "type" to "file")
+                        )
                     } else {
                         notifyError("Empty uris array for file sharing: ${intent.action}")
                     }
@@ -270,153 +267,184 @@ class ExpoShareIntentModule : Module() {
                 }
             }
         }
-        
+
         /*
          * https://stackoverflow.com/questions/73019160/the-getparcelableextra-method-is-deprecated
          */
-        private inline fun <reified T : Parcelable> Intent.parcelable(key: String): T? = when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelableExtra(key, T::class.java)
-            else -> @Suppress("DEPRECATION") getParcelableExtra(key) as? T
-        }
+        private inline fun <reified T : Parcelable> Intent.parcelable(key: String): T? =
+                when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+                            getParcelableExtra(key, T::class.java)
+                    else -> @Suppress("DEPRECATION") getParcelableExtra(key) as? T
+                }
 
-        private inline fun <reified T : Parcelable> Intent.parcelableArrayList(key: String): ArrayList<T>? = when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelableArrayListExtra(key, T::class.java)
-            else -> @Suppress("DEPRECATION") getParcelableArrayListExtra(key)
-        }
+        private inline fun <reified T : Parcelable> Intent.parcelableArrayList(
+                key: String
+        ): ArrayList<T>? =
+                when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+                            getParcelableArrayListExtra(key, T::class.java)
+                    else -> @Suppress("DEPRECATION") getParcelableArrayListExtra(key)
+                }
     }
 
     // See https://docs.expo.dev/modules/module-api
     override fun definition() = ModuleDefinition {
         Name("ExpoShareIntentModule")
 
-        Events("onChange", "onStateChange", "onError")
+        Events("onChange", "onStateChange", "onError", "onDonate")
 
         AsyncFunction("getShareIntent") { _: String ->
             // get the Intent from onCreate activity (app not running in background)
             ExpoShareIntentSingleton.isPending = false
             if (ExpoShareIntentSingleton.intent?.type != null) {
-                handleShareIntent(ExpoShareIntentSingleton.intent!!);
+                handleShareIntent(ExpoShareIntentSingleton.intent!!)
                 ExpoShareIntentSingleton.intent = null
             }
         }
 
-        Function("clearShareIntent") { _: String ->
-            ExpoShareIntentSingleton.intent = null
-        }
-
-        Function("hasShareIntent") { _: String ->
-            ExpoShareIntentSingleton.isPending
-        }
-
-        OnNewIntent {
-            handleShareIntent(it)
-        }
-
-        OnCreate {
-            instance = this@ExpoShareIntentModule
-        }
-
-        OnDestroy {
-            instance = null
-        }
-    }
-
-    /**
-     * Get a file path from a Uri. This will get the path for Storage Access
-     * Framework Documents, as well as the _data field for the MediaStore and
-     * other file-based ContentProviders.
-     *
-     * @param uri The Uri to query.
-     * @return The absolute file path or null if not found
-     */
-    fun getAbsolutePath(uri: Uri): String? {
-        return try {
-            when {
-                // Handle document URIs through the DocumentProvider
-                DocumentsContract.isDocumentUri(context, uri) -> getDocumentProviderPath(uri)
+        AsyncFunction("sendMessage") { 
+            conversationIdentifier: String, name: String, imageURL: String?, content: String? ->
+            try {
+                // Create message sending intent
+                val messageUri = Uri.parse("smsto:$conversationIdentifier")
+                val sendIntent = Intent(Intent.ACTION_SENDTO, messageUri)
                 
-                // Handle content scheme URIs
-                "content".equals(uri.scheme, ignoreCase = true) -> getDataColumn(uri, null, null)
+                // Add message content if provided
+                content?.let { 
+                    sendIntent.putExtra("sms_body", it)
+                }
                 
-                // Default to the URI path for other schemes
-                else -> uri.path
+                // Make sure we have a current activity to launch the intent from
+                val activity = currentActivity ?: throw Exception("No activity available")
+                
+                // Launch the messaging app
+                activity.startActivity(sendIntent)
+                
+                // Notify JS side
+                sendEvent("onDonate", mapOf(
+                    "data" to mapOf(
+                        "conversationIdentifier" to conversationIdentifier,
+                        "name" to name,
+                        "content" to content
+                    )
+                ))
+                
+                // Create app shortcut or suggestion for future use if supported
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+                    try {
+                        val shortcutManager = activity.getSystemService(ShortcutManager::class.java)
+                        
+                        // Create shortcut icon
+                        val icon = if (imageURL != null) {
+                            try {
+                                // Try to load image from URL
+                                val url = URL(imageURL)
+                                val connection = url.openConnection() as HttpURLConnection
+                                connection.doInput = true
+                                connection.connect()
+                                val input = connection.inputStream
+                                val bitmap = BitmapFactory.decodeStream(input)
+                                Icon.createWithBitmap(bitmap)
+                            } catch (e: Exception) {
+                                // Fall back to default icon
+                                Icon.createWithResource(context, android.R.drawable.ic_dialog_email)
+                            }
+                        } else {
+                            Icon.createWithResource(context, android.R.drawable.ic_dialog_email)
+                        }
+                        
+                        // Create intent for shortcut
+                        val shortcutIntent = Intent(Intent.ACTION_SENDTO, messageUri)
+                        content?.let { shortcutIntent.putExtra("sms_body", it) }
+                        
+                        // Build the shortcut info
+                        val shortcutInfo = ShortcutInfo.Builder(context, "msg_${conversationIdentifier.hashCode()}")
+                            .setShortLabel(name)
+                            .setLongLabel("Send message to $name")
+                            .setIcon(icon)
+                            .setIntent(shortcutIntent)
+                            .build()
+                            
+                        // Try to add dynamic shortcut
+                        if (shortcutManager != null && shortcutManager.dynamicShortcuts.size < shortcutManager.maxShortcutCountPerActivity) {
+                            shortcutManager.addDynamicShortcuts(listOf(shortcutInfo))
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ExpoShareIntent", "Failed to create shortcut: ${e.message}")
+                        // Not critical, just log error
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                sendEvent("onError", mapOf("data" to "Failed to send message: ${e.message}"))
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            notifyError("Cannot retrieve absoluteFilePath for $uri: ${e.message}")
-            null
         }
     }
-    
-    /**
-     * Handles document provider URIs based on their authority
-     */
+
+    /** Handles document provider URIs based on their authority */
     private fun getDocumentProviderPath(uri: Uri): String? {
         val docId = DocumentsContract.getDocumentId(uri)
-        
+
         return when {
             // External storage documents
             isExternalStorageDocument(uri) -> handleExternalStorageDocument(docId)
-            
+
             // Downloads documents
             isDownloadsDocument(uri) -> handleDownloadsDocument(uri, docId)
-            
+
             // Media documents (images, videos, audio)
             isMediaDocument(uri) -> handleMediaDocument(uri, docId)
-            
+
             // Other document types
             else -> null
         }
     }
-    
-    /**
-     * Handles external storage document URIs
-     */
+
+    /** Handles external storage document URIs */
     private fun handleExternalStorageDocument(docId: String): String? {
         val split = docId.split(":", limit = 2)
         val type = split[0]
-        
+
         return if ("primary".equals(type, ignoreCase = true) && split.size > 1) {
             "${Environment.getExternalStorageDirectory()}/${split[1]}"
         } else {
             getDataColumn(uri = Uri.parse(docId), selection = null, selectionArgs = null)
         }
     }
-    
-    /**
-     * Handles downloads document URIs
-     */
+
+    /** Handles downloads document URIs */
     private fun handleDownloadsDocument(uri: Uri, docId: String): String? {
         return try {
-            val contentUri = ContentUris.withAppendedId(
-                Uri.parse("content://downloads/public_downloads"),
-                docId.toLong()
-            )
+            val contentUri =
+                    ContentUris.withAppendedId(
+                            Uri.parse("content://downloads/public_downloads"),
+                            docId.toLong()
+                    )
             getDataColumn(contentUri, null, null)
         } catch (e: Exception) {
             // Fallback if parsing fails
             getDataColumn(uri, null, null)
         }
     }
-    
-    /**
-     * Handles media document URIs (images, videos, audio)
-     */
+
+    /** Handles media document URIs (images, videos, audio) */
     private fun handleMediaDocument(uri: Uri, docId: String): String? {
         val split = docId.split(":", limit = 2)
         val type = split[0]
-        
+
         // Early return if we don't have the expected format
         if (split.size < 2) return null
-        
+
         // Select the appropriate content URI based on media type
-        val contentUri = when (type) {
-            "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-            "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            else -> return null
-        }
-        
+        val contentUri =
+                when (type) {
+                    "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                    "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                    "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                    else -> return null
+                }
+
         // Query the content provider
         val selection = "_id=?"
         val selectionArgs = arrayOf(split[1])
@@ -424,48 +452,50 @@ class ExpoShareIntentModule : Module() {
     }
 
     /**
-     * Get the value of the data column for this Uri. This is useful for
-     * MediaStore Uris, and other file-based ContentProviders.
+     * Get the value of the data column for this Uri. This is useful for MediaStore Uris, and other
+     * file-based ContentProviders.
      *
      * @param uri The Uri to query.
      * @param selection (Optional) Filter used in the query.
      * @param selectionArgs (Optional) Selection arguments used in the query.
      * @return The value of the _data column, which is typically a file path.
      */
-    private fun getDataColumn(uri: Uri, selection: String?, selectionArgs: Array<String>?): String? {
+    private fun getDataColumn(
+            uri: Uri,
+            selection: String?,
+            selectionArgs: Array<String>?
+    ): String? {
         // Get content resolver
-        val resolver = getContentResolver() ?: run {
-            notifyError("Cannot get resolver (getDataColumn)")
-            return null
-        }
-        
+        val resolver =
+                getContentResolver()
+                        ?: run {
+                            notifyError("Cannot get resolver (getDataColumn)")
+                            return null
+                        }
+
         // Handle content with authority by copying to cache
         if (uri.authority != null) {
             return copyUriToCache(uri, resolver, selection, selectionArgs)
         }
-        
+
         // Otherwise try to get the direct file path
         return queryForDataColumn(resolver, uri, selection, selectionArgs)
     }
-    
-    /**
-     * Copies URI content to cache directory and returns the path
-     */
+
+    /** Copies URI content to cache directory and returns the path */
     private fun copyUriToCache(
-        uri: Uri, 
-        resolver: ContentResolver,
-        selection: String?, 
-        selectionArgs: Array<String>?
+            uri: Uri,
+            resolver: ContentResolver,
+            selection: String?,
+            selectionArgs: Array<String>?
     ): String? {
         // Try to get the filename
         val targetFile = getTargetFile(uri, resolver, selection, selectionArgs) ?: return null
-        
+
         // Copy the file content
         try {
             resolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(targetFile).use { output ->
-                    input.copyTo(output)
-                }
+                FileOutputStream(targetFile).use { output -> input.copyTo(output) }
             }
             return targetFile.path
         } catch (e: Exception) {
@@ -473,19 +503,18 @@ class ExpoShareIntentModule : Module() {
             return null
         }
     }
-    
-    /**
-     * Creates a target file in cache, either with original name or generated name
-     */
+
+    /** Creates a target file in cache, either with original name or generated name */
     private fun getTargetFile(
-        uri: Uri, 
-        resolver: ContentResolver,
-        selection: String?, 
-        selectionArgs: Array<String>?
+            uri: Uri,
+            resolver: ContentResolver,
+            selection: String?,
+            selectionArgs: Array<String>?
     ): File? {
         // Try to get the original filename
         return try {
-            resolver.query(uri, arrayOf("_display_name"), selection, selectionArgs, null)?.use { cursor ->
+            resolver.query(uri, arrayOf("_display_name"), selection, selectionArgs, null)?.use {
+                    cursor ->
                 if (cursor.moveToFirst()) {
                     val columnIndex = cursor.getColumnIndexOrThrow("_display_name")
                     val fileName = cursor.getString(columnIndex)
@@ -494,38 +523,37 @@ class ExpoShareIntentModule : Module() {
                 } else {
                     createGenericFile(uri, resolver)
                 }
-            } ?: createGenericFile(uri, resolver)
+            }
+                    ?: createGenericFile(uri, resolver)
         } catch (e: Exception) {
             createGenericFile(uri, resolver)
         }
     }
-    
-    /**
-     * Creates a generic file name based on mime type
-     */
+
+    /** Creates a generic file name based on mime type */
     private fun createGenericFile(uri: Uri, resolver: ContentResolver): File {
         val mimeType = resolver.getType(uri)
-        val prefix = with(mimeType ?: "") {
-            when {
-                startsWith("image") -> "IMG"
-                startsWith("video") -> "VID"
-                else -> "FILE"
-            }
-        }
+        val prefix =
+                with(mimeType ?: "") {
+                    when {
+                        startsWith("image") -> "IMG"
+                        startsWith("video") -> "VID"
+                        else -> "FILE"
+                    }
+                }
         val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: ""
         return File(context.cacheDir, "${prefix}_${Date().time}.${extension}")
     }
-    
-    /**
-     * Queries for _data column to get direct file path
-     */
+
+    /** Queries for _data column to get direct file path */
     private fun queryForDataColumn(
-        resolver: ContentResolver,
-        uri: Uri,
-        selection: String?,
-        selectionArgs: Array<String>?
+            resolver: ContentResolver,
+            uri: Uri,
+            selection: String?,
+            selectionArgs: Array<String>?
     ): String? {
-        return resolver.query(uri, arrayOf("_data"), selection, selectionArgs, null)?.use { cursor ->
+        return resolver.query(uri, arrayOf("_data"), selection, selectionArgs, null)?.use { cursor
+            ->
             if (cursor.moveToFirst()) {
                 val columnIndex = cursor.getColumnIndexOrThrow("_data")
                 cursor.getString(columnIndex)
@@ -534,12 +562,40 @@ class ExpoShareIntentModule : Module() {
             }
         }
     }
-    
-    /**
-     * Gets the content resolver from instance
+
+    /** Gets the content resolver from instance */
+    private fun getContentResolver(): ContentResolver? =
+            currentActivity?.contentResolver ?: context.contentResolver
+            
+    /** 
+     * Gets the absolute file path for a URI
+     * @param uri The URI to get the file path for
+     * @return The absolute file path, or null if it couldn't be determined
      */
-    private fun getContentResolver(): ContentResolver? = 
-        currentActivity?.contentResolver ?: context.contentResolver
+    private fun getAbsolutePath(uri: Uri): String? {
+        try {
+            // Handle content:// scheme
+            if (DocumentsContract.isDocumentUri(context, uri)) {
+                return getDocumentProviderPath(uri)
+            }
+            
+            // Handle file:// scheme
+            if ("file".equals(uri.scheme, ignoreCase = true)) {
+                return uri.path
+            }
+            
+            // Handle content:// scheme (non-document)
+            if ("content".equals(uri.scheme, ignoreCase = true)) {
+                return getDataColumn(uri, null, null)
+            }
+            
+            return uri.toString()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            notifyError("Cannot retrieve absolute path for $uri: ${e.message}")
+            return null
+        }
+    }
 
     /**
      * @param uri The Uri to check.

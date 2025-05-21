@@ -1,2 +1,11 @@
-<manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Direct Share service for Android 6.0+ (API 23+) -->
+    <service
+        android:name=".ExpoShareIntentChooserTargetService"
+        android:permission="android.permission.BIND_CHOOSER_TARGET_SERVICE"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="android.service.chooser.ChooserTargetService" />
+        </intent-filter>
+    </service>
 </manifest>
