@@ -7,145 +7,128 @@ import {
   ShareIntent,
   ShareIntentFile,
   ShareIntentOptions,
-} from "./ExpoShareIntentModule.types";
-import { SHAREINTENT_DEFAULTVALUE } from "./useShareIntent";
+} from "./types";
+import { DEFAULT_INTENT } from "./constants";
 
-export const getScheme = (options?: ShareIntentOptions) => {
-  if (options?.scheme !== undefined) {
-    options?.debug &&
-      console.debug("expoShareIntent[scheme] from option:", options.scheme);
-    return options.scheme;
+/**
+ * Determine the custom URI scheme for the app.
+ */
+export const getScheme = ({ scheme, debug }: ShareIntentOptions = {}) => {
+  if (scheme) {
+    debug && console.debug("[scheme] from options:", scheme);
+    return scheme;
   }
-  if (Constants.expoConfig?.scheme) {
-    let updatedScheme = Constants.expoConfig?.scheme;
-    if (Array.isArray(Constants.expoConfig?.scheme)) {
-      updatedScheme = updatedScheme[0];
-      options?.debug &&
-        console.debug(
-          `expoShareIntent[scheme] from expoConfig: multiple scheme detected (${Constants.expoConfig?.scheme.join(",")}), using:${updatedScheme}`,
-        );
-    } else {
-      options?.debug &&
-        console.debug(
-          "expoShareIntent[scheme] from expoConfig:",
-          updatedScheme,
-        );
-    }
-    return updatedScheme;
+
+  const configScheme = Constants.expoConfig?.scheme;
+  if (configScheme) {
+    const selected = Array.isArray(configScheme)
+      ? configScheme[0]
+      : configScheme;
+    debug &&
+      console.debug(
+        "[scheme] from expoConfig:",
+        Array.isArray(configScheme)
+          ? `multiple detected (${configScheme.join(",")}), using ${selected}`
+          : selected,
+      );
+    return selected;
   }
-  const deepLinkUrl = createURL("dataUrl=");
-  const extracted = deepLinkUrl.match(/^([^:]+)/gi)?.[0] || null;
-  options?.debug &&
-    console.debug(
-      "expoShareIntent[scheme] from linking url:",
-      deepLinkUrl,
-      extracted,
-    );
+
+  const url = createURL("dataUrl=");
+  const match = url.match(/^([^:]+):/);
+  const extracted = match?.[1] || null;
+  debug && console.debug("[scheme] from linking url:", url, extracted);
   return extracted;
 };
 
+/**
+ * Key for storing share data in native storage.
+ */
 export const getShareExtensionKey = (options?: ShareIntentOptions) => {
   const scheme = getScheme(options);
   return `${scheme}ShareKey`;
 };
 
-// const IOS_SHARE_TYPE_MAPPING = {
-//   0: "media",
-//   1: "text",
-//   2: "weburl",
-//   3: "file",
-// };
-
-export function parseJson<T>(
-  value: string,
-  defaultValue: T | null = null,
-): T | null {
+/**
+ * Safely parse JSON, returning default on failure.
+ */
+const safeParse = <T>(value: string, fallback: T | null = null): T | null => {
   try {
     return JSON.parse(value) as T;
-  } catch (e) {
-    console.debug(e);
-    return defaultValue;
+  } catch {
+    return fallback;
   }
-}
+};
 
+/**
+ * Convert native share payload into a unified ShareIntent.
+ */
 export const parseShareIntent = (
-  value: string | AndroidShareIntent,
-  options: ShareIntentOptions,
+  data: string | AndroidShareIntent,
+  options: ShareIntentOptions = {},
 ): ShareIntent => {
-  let result = SHAREINTENT_DEFAULTVALUE;
-  if (!value) return result;
-  let shareIntent: IosShareIntent | AndroidShareIntent | null;
-  // ios native module send a raw string of the json, try to parse it
-  if (typeof value === "string") {
-    shareIntent = parseJson<IosShareIntent>(value); // iOS
-  } else {
-    shareIntent = value; // Android
-  }
+  if (!data) return DEFAULT_INTENT;
 
-  if (shareIntent?.text) {
-    // Try to find the webURL in the SharedIntent text
+  const raw: IosShareIntent | AndroidShareIntent | null =
+    typeof data === "string" ? safeParse<IosShareIntent>(data) : data;
+
+  if (!raw) return DEFAULT_INTENT;
+
+  // Text or URL share
+  if (raw.text) {
     const webUrl =
-      shareIntent.text
-        .match(
-          /[(http(s)?)://(www.)?-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/gi,
-        )
-        ?.find((link) => link.startsWith("http")) || null;
-
-    result = {
-      ...SHAREINTENT_DEFAULTVALUE,
+      raw.text
+        .match(/https?:\/\/[^\s]+/gi)
+        ?.find((u) => u.startsWith("http")) || null;
+    return {
+      ...DEFAULT_INTENT,
+      conversationIdentifier: raw.conversationIdentifier,
       type: webUrl ? "weburl" : "text",
-      text: shareIntent.text,
+      text: raw.text,
       webUrl,
-      meta: {
-        title: shareIntent.meta?.title ?? undefined,
-      },
-    };
-  } else if ((shareIntent as IosShareIntent)?.weburls?.length) {
-    const weburl = (shareIntent as IosShareIntent).weburls![0];
-    result = {
-      ...SHAREINTENT_DEFAULTVALUE,
-      type: "weburl",
-      text: weburl.url, // retrocompatibility
-      webUrl: weburl.url,
-      meta: parseJson<Record<string, string>>(weburl.meta, {}),
-    };
-  } else {
-    // Ensure we got a valid file. some array value are emply
-    const files =
-      shareIntent?.files?.filter((file: any) => file.path || file.contentUri) ||
-      [];
-    const isMedia = files.every(
-      (file) =>
-        file.mimeType.startsWith("image/") ||
-        file.mimeType.startsWith("video/"),
-    );
-    result = {
-      ...SHAREINTENT_DEFAULTVALUE,
-      files: shareIntent?.files
-        ? shareIntent.files.reduce((acc: ShareIntentFile[], file: any) => {
-            if (!file.path && !file.contentUri) return acc;
-            return [
-              ...acc,
-              {
-                path:
-                  file.path ||
-                  (file.filePath ? `file://${file.filePath}` : null) ||
-                  file.contentUri ||
-                  null,
-                mimeType: file.mimeType || null,
-                fileName: file.fileName || null,
-                width: file.width ? Number(file.width) : null,
-                height: file.height ? Number(file.height) : null,
-                size: file.fileSize ? Number(file.fileSize) : null,
-                duration: file.duration ? Number(file.duration) : null,
-              },
-            ];
-          }, [])
-        : null,
-      type: isMedia ? "media" : "file",
+      meta: { title: (raw as IosShareIntent).meta?.title },
     };
   }
-  options.debug &&
-    console.debug("useShareIntent[parsed] ", JSON.stringify(result, null, 2));
+
+  // iOS weburls array
+  if (
+    Array.isArray((raw as IosShareIntent).weburls) &&
+    (raw as IosShareIntent).weburls?.length
+  ) {
+    const weburl = (raw as IosShareIntent).weburls?.[0]!;
+    return {
+      ...DEFAULT_INTENT,
+      conversationIdentifier: raw.conversationIdentifier,
+      type: "weburl",
+      text: weburl.url,
+      webUrl: weburl.url,
+      meta: safeParse<Record<string, string>>(weburl.meta, {}),
+    };
+  }
+
+  // Files or media
+  const files = (raw.files || []).filter((f: any) => f.path || f.contentUri);
+  const shareFiles: ShareIntentFile[] = files.map((f: any) => ({
+    path: f.path || f.contentUri || null,
+    mimeType: f.mimeType || null,
+    fileName: f.fileName || null,
+    width: f.width ? Number(f.width) : null,
+    height: f.height ? Number(f.height) : null,
+    size: f.fileSize ? Number(f.fileSize) : null,
+    duration: f.duration ? Number(f.duration) : null,
+  }));
+
+  const isMedia = shareFiles.every(
+    (f) => f.mimeType?.startsWith("image/") || f.mimeType?.startsWith("video/"),
+  );
+
+  const result: ShareIntent = {
+    ...DEFAULT_INTENT,
+    conversationIdentifier: raw.conversationIdentifier,
+    files: shareFiles.length ? shareFiles : null,
+    type: isMedia ? "media" : "file",
+  };
+
+  options.debug && console.debug("[parsed]", result);
   return result;
 };

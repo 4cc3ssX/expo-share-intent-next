@@ -4,7 +4,7 @@ import {
   DonateSendMessageOptions,
   ShareIntent,
   ShareIntentOptions,
-} from "./ExpoShareIntentModule.types";
+} from "./types";
 import useShareIntent, { SHAREINTENT_DEFAULTVALUE } from "./useShareIntent";
 
 type ShareIntentContextState = {

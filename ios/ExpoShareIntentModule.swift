@@ -36,20 +36,15 @@ public class ExpoShareIntentModule: Module {
             ) in
 
             /// Build the INPerson, optionally with the INImage
-
-            var image: INImage?
-            if let url = imageURL,
-                let fetched = await createINImage(from: url)
-            {
-                // we have a valid INImage from the URL
-                image = fetched
-            } else {
-                // either no URL or download failed → use bundled image
-                image = INImage(named: name)
-            }
+            let image: INImage = await createINImage(
+                from: imageURL,
+                name: name,
+                size: 80
+            )
 
             let recipient = INPerson(
-                personHandle: INPersonHandle(value: conversationIdentifier, type: .unknown),
+                personHandle: INPersonHandle(
+                    value: conversationIdentifier, type: .unknown),
                 nameComponents: nil,
                 displayName: name,
                 image: image,
@@ -112,22 +107,102 @@ public class ExpoShareIntentModule: Module {
         }
     }
 
-    func createINImage(from urlString: String) async -> INImage? {
-        guard let url = URL(string: urlString) else { return nil }
+    // MARK: Create INImage
+    func createINImage(
+        from urlString: String?,
+        name: String,
+        size: CGFloat = 80
+    ) async -> INImage {
+        // always have a fallback UIImage
+        let fallback = createMonogramAvatar(
+            for: name, size: .init(width: size, height: size))
 
-        // Local file URL → can use imageWithURL directly
-        if url.isFileURL {
-            return INImage(url: url)
+        guard let urlString = urlString,
+            let url = URL(string: urlString)
+        else {
+            // no URL at all → wrap monogram
+            return INImage(imageData: fallback.pngData()!)
         }
 
-        // Remote URL → download the data first
+        // Local file → use the URL constructor with dimensions
+        if url.isFileURL {
+            if let img = INImage(
+                url: url,
+                width: Double(size),
+                height: Double(size)
+            ) {
+                return img
+            }
+            // fallback if that fails
+            return INImage(imageData: fallback.pngData()!)
+        }
+
+        // Remote URL → download, crop, then wrap
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            // You can also constrain size if you like:
-            // return INImage(imageWithURL: url, width: 100, height: 100)
-            return INImage(imageData: data)
+            guard let raw = UIImage(data: data) else {
+                return INImage(imageData: fallback.pngData()!)
+            }
+            let square = cropToSquareCoverMode(raw, size: size)
+            guard let png = square.pngData() else {
+                return INImage(imageData: fallback.pngData()!)
+            }
+            return INImage(imageData: png)
         } catch {
-            return nil
+            return INImage(imageData: fallback.pngData()!)
+        }
+    }
+
+    // MARK: Crop to square
+    func cropToSquareCoverMode(_ image: UIImage, size: CGFloat) -> UIImage {
+        let shortest = min(image.size.width, image.size.height)
+        let cropRect = CGRect(
+            x: (image.size.width - shortest) / 2,
+            y: (image.size.height - shortest) / 2,
+            width: shortest,
+            height: shortest
+        )
+        guard let cgCropped = image.cgImage?.cropping(to: cropRect) else {
+            return image
+        }
+        let cropped = UIImage(
+            cgImage: cgCropped, scale: image.scale,
+            orientation: image.imageOrientation)
+
+        // now scale it down to your target size
+        let renderer = UIGraphicsImageRenderer(
+            size: .init(width: size, height: size))
+        return renderer.image { _ in
+            cropped.draw(in: CGRect(x: 0, y: 0, width: size, height: size))
+        }
+    }
+
+    // MARK: Create Monogram Avatar
+    func createMonogramAvatar(
+        for name: String, size: CGSize = .init(width: 80, height: 80)
+    ) -> UIImage {
+        let initials = String(name.prefix(1)).uppercased()
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            // 1) colored background
+            let circleRect = CGRect(origin: .zero, size: size)
+            UIColor.systemGray.setFill()
+            ctx.cgContext.fillEllipse(in: circleRect)
+
+            // 2) draw the letter centered
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(
+                    ofSize: size.width * 0.5, weight: .medium),
+                .foregroundColor: UIColor.white,
+            ]
+            let textSize = initials.size(withAttributes: attrs)
+            let textRect = CGRect(
+                x: (size.width - textSize.width) / 2,
+                y: (size.height - textSize.height) / 2,
+                width: textSize.width,
+                height: textSize.height
+            )
+            initials.draw(in: textRect, withAttributes: attrs)
         }
     }
 
@@ -136,6 +211,7 @@ public class ExpoShareIntentModule: Module {
 
     private var initialText: String? = nil
     private var latestText: String? = nil
+    private var conversationIdentifier: String? = nil
 
     /**
      * Handles the shared URL and processes different types of shared content
@@ -167,7 +243,9 @@ public class ExpoShareIntentModule: Module {
         if fragment != "media" && fragment != "file" && fragment != "weburl"
             && fragment != "text"
         {
-            return handleDirectTextUrl(url: url, fragment: fragment)
+            return handleDirectTextUrl(
+                url: url,
+                fragment: fragment)
         }
 
         // Extract the key from URL host
@@ -213,10 +291,16 @@ public class ExpoShareIntentModule: Module {
     /**
      * Handles direct text URL without a key in host
      */
-    private func handleDirectTextUrl(url: URL, fragment: String) -> String? {
+    private func handleDirectTextUrl(
+        url: URL, fragment: String
+    ) -> String? {
         latestText = url.absoluteString
         return latestText.flatMap { text in
-            try? ShareIntentText(text: text, type: fragment).toJSON()
+            try? ShareIntentText(
+                conversationIdentifier: self.conversationIdentifier,
+                text: text,
+                type: fragment
+            ).toJSON()
         } ?? "empty"
     }
 
@@ -246,7 +330,8 @@ public class ExpoShareIntentModule: Module {
                     fileSize: mediaFile.fileSize, width: mediaFile.width,
                     height: mediaFile.height,
                     duration: mediaFile.duration, mimeType: mediaFile.mimeType,
-                    type: mediaFile.type)
+                    type: mediaFile.type,
+                    conversationIdentifier: mediaFile.conversationIdentifier)
             }
 
             return SharedMediaFile(
@@ -254,7 +339,8 @@ public class ExpoShareIntentModule: Module {
                 fileSize: mediaFile.fileSize, width: mediaFile.width,
                 height: mediaFile.height,
                 duration: mediaFile.duration, mimeType: mediaFile.mimeType,
-                type: mediaFile.type)
+                type: mediaFile.type,
+                conversationIdentifier: mediaFile.conversationIdentifier)
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
@@ -282,7 +368,8 @@ public class ExpoShareIntentModule: Module {
                 path: path, thumbnail: nil, fileName: mediaFile.fileName,
                 fileSize: mediaFile.fileSize, width: nil, height: nil,
                 duration: nil,
-                mimeType: mediaFile.mimeType, type: mediaFile.type)
+                mimeType: mediaFile.mimeType, type: mediaFile.type,
+                conversationIdentifier: mediaFile.conversationIdentifier)
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
@@ -301,7 +388,9 @@ public class ExpoShareIntentModule: Module {
 
         let sharedArray = decodeWebUrl(data: json)
         let sharedWebUrls = sharedArray.map {
-            WebUrl(url: $0.url, meta: $0.meta)
+            WebUrl(
+                url: $0.url, meta: $0.meta,
+                conversationIdentifier: $0.conversationIdentifier)
         }
 
         guard let json = toJson(data: sharedWebUrls) else { return "[]" }
@@ -312,16 +401,29 @@ public class ExpoShareIntentModule: Module {
      * Processes text content from shared preferences
      */
     private func processTextContent(
-        key: String, userDefaults: UserDefaults?, fragment: String
+        key: String,
+        userDefaults: UserDefaults?,
+        fragment: String
     ) -> String? {
-        guard let sharedArray = userDefaults?.object(forKey: key) as? [String]
-        else {
+        guard let raw = userDefaults?.object(forKey: key) as? Data else {
             return "empty"
         }
 
-        latestText = sharedArray.joined(separator: ",")
+        let decoder = JSONDecoder()
+        guard let items = try? decoder.decode([SharedText].self, from: raw)
+        else {
+            reportError("Failed to decode shared text payload")
+            return "error"
+        }
+
+        self.conversationIdentifier = items.first?.conversationIdentifier
+        self.latestText = items.map { $0.text }.joined(separator: ",")
+
         return latestText.flatMap { text in
-            try? ShareIntentText(text: text, type: fragment).toJSON()
+            try? ShareIntentText(
+                conversationIdentifier: self.conversationIdentifier, text: text,
+                type: fragment
+            ).toJSON()
         } ?? latestText
     }
 
@@ -380,6 +482,11 @@ public class ExpoShareIntentModule: Module {
         return (try? JSONDecoder().decode([WebUrl].self, from: data)) ?? []
     }
 
+    private func decodeText(data: Data) -> [ShareIntentText] {
+        return (try? JSONDecoder().decode([ShareIntentText].self, from: data))
+            ?? []
+    }
+
     private func toJson<T: Encodable>(data: [T]?) -> String? {
         guard let data = data else { return nil }
         return encodeToJsonString(data)
@@ -393,21 +500,35 @@ public class ExpoShareIntentModule: Module {
     }
 
     struct ShareIntentText: Codable {
+        let conversationIdentifier: String?
         let text: String
         let type: String  // text / weburl
     }
 
     struct WebUrl: Codable {
+        var conversationIdentifier: String?
         var url: String
         var meta: String
 
-        init(url: String, meta: String) {
+        init(url: String, meta: String, conversationIdentifier: String?) {
             self.url = url
             self.meta = meta
+            self.conversationIdentifier = conversationIdentifier
+        }
+    }
+
+    class SharedText: Codable {
+        var text: String
+        var conversationIdentifier: String
+
+        init(text: String, conversationIdentifier: String) {
+            self.text = text
+            self.conversationIdentifier = conversationIdentifier
         }
     }
 
     class SharedMediaFile: Codable {
+        var conversationIdentifier: String?
         var path: String  // can be image, video or url path
         var thumbnail: String?  // video thumbnail
         var fileName: String  // uuid + extension
@@ -422,7 +543,8 @@ public class ExpoShareIntentModule: Module {
             path: String, thumbnail: String?, fileName: String, fileSize: Int?,
             width: Int?,
             height: Int?, duration: Double?, mimeType: String,
-            type: SharedMediaType
+            type: SharedMediaType,
+            conversationIdentifier: String?
         ) {
             self.path = path
             self.thumbnail = thumbnail
@@ -433,6 +555,7 @@ public class ExpoShareIntentModule: Module {
             self.duration = duration
             self.mimeType = mimeType
             self.type = type
+            self.conversationIdentifier = conversationIdentifier
         }
     }
 

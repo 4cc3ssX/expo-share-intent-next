@@ -1,7 +1,4 @@
-export type {
-  ShareIntent,
-  ShareIntentFile,
-} from "./ExpoShareIntentModule.types";
+export type { ShareIntent, ShareIntentFile } from "./types";
 
 export { default as ShareIntentModule } from "./ExpoShareIntentModule";
 

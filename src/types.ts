@@ -58,6 +58,7 @@ export type ShareIntentMeta = Record<string, string | undefined> & {
  * Base type for what shared content is common between both platforms.
  */
 interface BaseShareIntent {
+  conversationIdentifier?: string | null;
   meta?: ShareIntentMeta | null;
   text?: string | null;
 }
@@ -84,7 +85,10 @@ export interface AndroidShareIntent extends BaseShareIntent {
  */
 export interface IosShareIntent extends BaseShareIntent {
   files?: IosShareIntentFile[];
-  weburls?: { url: string; meta: string }[];
+  weburls?: {
+    url: string;
+    meta: string;
+  }[];
   type: "media" | "file" | "text" | "weburl";
 }
 

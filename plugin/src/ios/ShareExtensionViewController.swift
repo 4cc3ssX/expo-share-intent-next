@@ -1,3 +1,4 @@
+import Intents
 import MobileCoreServices
 import Photos
 import Social
@@ -17,9 +18,16 @@ class ShareViewController: UIViewController {
   let propertyListType: String = UTType.propertyList.identifier
   let fileURLType: String = UTType.fileURL.identifier
   let pdfContentType: String = UTType.pdf.identifier
+  private var conversationIdentifier: String? = nil
 
   override func viewDidLoad() {
     super.viewDidLoad()
+
+    // Populate the recipient property with the metadata in case the person taps a suggestion from the share sheet.
+    let intent = self.extensionContext?.intent as? INSendMessageIntent
+    if intent != nil {
+      self.conversationIdentifier = intent!.conversationIdentifier
+    }
   }
 
   override func viewDidAppear(_ animated: Bool) {
@@ -110,7 +118,13 @@ class ShareViewController: UIViewController {
     // If this is the last item, save sharedText in userDefaults and redirect to host app
     let isLastItem = index == (content.attachments?.count)! - 1
     if isLastItem {
-      saveAndRedirect(data: self.sharedText, type: .text)
+      let payload: [SharedText] = sharedText.map {
+        SharedText(
+          text: $0,
+          conversationIdentifier: self.conversationIdentifier)
+      }
+
+      saveAndRedirect(data: self.toData(data: payload), type: .text)
     }
   }
 
@@ -140,7 +154,10 @@ class ShareViewController: UIViewController {
   private func processUrlItem(_ url: URL, content: NSExtensionItem, index: Int)
     async
   {
-    self.sharedWebUrl.append(WebUrl(url: url.absoluteString, meta: ""))
+    self.sharedWebUrl.append(
+      WebUrl(
+        url: url.absoluteString, meta: "",
+        conversationIdentifier: self.conversationIdentifier))
 
     // If this is the last item, save and redirect
     let isLastItem = index == (content.attachments?.count)! - 1
@@ -197,7 +214,10 @@ class ShareViewController: UIViewController {
       return
     }
 
-    self.sharedWebUrl.append(WebUrl(url: url, meta: meta))
+    self.sharedWebUrl.append(
+      WebUrl(
+        url: url, meta: meta,
+        conversationIdentifier: self.conversationIdentifier))
 
     // If this is the last item, save and redirect
     let isLastItem = index == (content.attachments?.count)! - 1
@@ -327,7 +347,8 @@ class ShareViewController: UIViewController {
       height: dimensions.height,
       duration: nil,
       mimeType: mimeType,
-      type: .image
+      type: .image,
+      conversationIdentifier: self.conversationIdentifier
     )
   }
 
@@ -465,7 +486,8 @@ class ShareViewController: UIViewController {
         height: nil,
         duration: nil,
         mimeType: mimeType,
-        type: .file
+        type: .file,
+        conversationIdentifier: self.conversationIdentifier
       )
     )
 
@@ -608,7 +630,8 @@ class ShareViewController: UIViewController {
         fileName: fileName,
         fileSize: fileSize, width: trackWidth, height: trackHeight,
         duration: duration,
-        mimeType: mimeType, type: .video)
+        mimeType: mimeType, type: .video,
+        conversationIdentifier: self.conversationIdentifier)
     }
 
     var saved = false
@@ -631,7 +654,8 @@ class ShareViewController: UIViewController {
         fileName: fileName,
         fileSize: fileSize, width: trackWidth, height: trackHeight,
         duration: duration,
-        mimeType: mimeType, type: .video) : nil
+        mimeType: mimeType, type: .video,
+        conversationIdentifier: self.conversationIdentifier) : nil
   }
 
   private func getThumbnailPath(for url: URL) -> URL {
@@ -646,16 +670,29 @@ class ShareViewController: UIViewController {
   }
 
   class WebUrl: Codable {
+    var conversationIdentifier: String?
     var url: String
     var meta: String
 
-    init(url: String, meta: String) {
+    init(url: String, meta: String, conversationIdentifier: String?) {
       self.url = url
       self.meta = meta
+      self.conversationIdentifier = conversationIdentifier
+    }
+  }
+
+  class SharedText: Codable {
+    var text: String
+    var conversationIdentifier: String?
+
+    init(text: String, conversationIdentifier: String?) {
+      self.text = text
+      self.conversationIdentifier = conversationIdentifier
     }
   }
 
   class SharedMediaFile: Codable {
+    var conversationIdentifier: String?
     var path: String  // can be image, video or url path
     var thumbnail: String?  // video thumbnail
     var fileName: String  // uuid + extension
@@ -669,7 +706,8 @@ class ShareViewController: UIViewController {
     init(
       path: String, thumbnail: String?, fileName: String, fileSize: Int?,
       width: Int?, height: Int?,
-      duration: Double?, mimeType: String, type: SharedMediaType
+      duration: Double?, mimeType: String, type: SharedMediaType,
+      conversationIdentifier: String?
     ) {
       self.path = path
       self.thumbnail = thumbnail
@@ -680,6 +718,7 @@ class ShareViewController: UIViewController {
       self.duration = duration
       self.mimeType = mimeType
       self.type = type
+      self.conversationIdentifier = conversationIdentifier
     }
   }
 
@@ -693,7 +732,13 @@ class ShareViewController: UIViewController {
     let encodedData = try? JSONEncoder().encode(data)
     return encodedData
   }
+
   func toData(data: [SharedMediaFile]) -> Data? {
+    let encodedData = try? JSONEncoder().encode(data)
+    return encodedData
+  }
+
+  func toData(data: [SharedText]) -> Data? {
     let encodedData = try? JSONEncoder().encode(data)
     return encodedData
   }

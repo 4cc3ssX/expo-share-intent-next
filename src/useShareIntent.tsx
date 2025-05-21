@@ -1,174 +1,178 @@
 import { useLinkingURL } from "expo-linking";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Platform } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 
 import ExpoShareIntentModule from "./ExpoShareIntentModule";
+import { DEFAULT_INTENT } from "./constants";
 import {
   DonateSendMessageOptions,
   ShareIntent,
   ShareIntentOptions,
-} from "./ExpoShareIntentModule.types";
+} from "./types";
 import { getScheme, getShareExtensionKey, parseShareIntent } from "./utils";
 
-export const SHAREINTENT_DEFAULTVALUE: ShareIntent = {
-  files: null,
-  text: null,
-  webUrl: null,
-  type: null,
-};
+const useShareIntent = (options: ShareIntentOptions = {}) => {
+  const {
+    debug = false,
+    resetOnBackground = true,
+    disabled = Platform.OS === "web",
+    onResetShareIntent,
+  } = options;
 
-export const SHAREINTENT_OPTIONS_DEFAULT: ShareIntentOptions = {
-  debug: false,
-  resetOnBackground: true,
-  disabled: Platform.OS === "web",
-};
-
-const isValueAvailable = (shareIntent: ShareIntent) =>
-  !!(shareIntent?.text || shareIntent?.webUrl || shareIntent?.files);
-
-export default function useShareIntent(
-  options: ShareIntentOptions = SHAREINTENT_OPTIONS_DEFAULT,
-) {
   const url = useLinkingURL();
-
-  const appState = useRef(AppState.currentState);
-  const [shareIntent, setSharedIntent] = useState<ShareIntent>(
-    SHAREINTENT_DEFAULTVALUE,
-  );
+  const appStateRef = useRef(AppState.currentState);
+  const [shareIntent, setShareIntent] = useState<ShareIntent>(DEFAULT_INTENT);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  const resetShareIntent = (clearNativeModule = true) => {
-    if (options.disabled) return;
-    setError(null);
-    clearNativeModule &&
-      ExpoShareIntentModule?.clearShareIntent(getShareExtensionKey(options));
-    if (isValueAvailable(shareIntent)) {
-      setSharedIntent(SHAREINTENT_DEFAULTVALUE);
-      options.onResetShareIntent?.();
-    }
-  };
+  const hasIntent = Boolean(
+    shareIntent.text || shareIntent.webUrl || shareIntent.files?.length,
+  );
 
   /**
-   * Call native module on universal linking url change
+   * Clears the share intent
    */
-  const refreshShareIntent = () => {
-    options.debug && console.debug("useShareIntent[refresh]", url);
-    if (url?.includes(`${getScheme(options)}://dataUrl=`)) {
-      // iOS only
+  const resetIntent = useCallback(
+    (clearNative = true) => {
+      if (disabled) return;
+      setError(null);
+      if (clearNative) {
+        ExpoShareIntentModule?.clearShareIntent(getShareExtensionKey(options));
+      }
+
+      if (hasIntent) {
+        setShareIntent(DEFAULT_INTENT);
+        onResetShareIntent?.();
+      }
+    },
+    [disabled, hasIntent, onResetShareIntent, options],
+  );
+
+  /**
+   * Requests native module for share intent
+   */
+  const refreshIntent = useCallback(() => {
+    if (disabled) return;
+    debug && console.debug("useShareIntent: refreshing intent", url);
+
+    const scheme = getScheme(options);
+    if (url?.includes(`${scheme}://dataUrl=`)) {
+      // iOS universal link
       ExpoShareIntentModule?.getShareIntent(url);
     } else if (Platform.OS === "android") {
       ExpoShareIntentModule?.getShareIntent("");
-    } else if (Platform.OS === "ios") {
-      options.debug &&
-        console.debug("useShareIntent[refresh] not a valid refresh url");
+    } else {
+      debug && console.debug("useShareIntent: no intent to fetch");
     }
-  };
-
-  const donateSendMessage = useCallback((options: DonateSendMessageOptions) => {
-    if (!options.conversationIdentifier || !options.name) {
-      console.error("useShareIntent[donateSendMessage] missing chatId or name");
-      return;
-    }
-
-    if (Platform.OS !== "ios") {
-      console.warn("useShareIntent[donateSendMessage] only available on iOS");
-      return;
-    }
-
-    ExpoShareIntentModule?.donateSendMessage(
-      options.conversationIdentifier,
-      options.name,
-      options.imageURL,
-      options.content,
-    );
-  }, []);
-
-  useEffect(() => {
-    if (options.disabled) return;
-    options.debug &&
-      console.debug("useShareIntent[mount]", getScheme(options), options);
-    refreshShareIntent();
-  }, [url, options.disabled]);
+  }, [disabled, debug, url, options]);
 
   /**
-   * Handle application state (active, background, inactive)
+   * Donate send message for Siri suggestions (iOS)
    */
-  useEffect(() => {
-    if (options.disabled) return;
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      if (nextAppState === "active") {
-        options.debug && console.debug("useShareIntent[active] refresh intent");
-        refreshShareIntent();
-      } else if (
-        options.resetOnBackground !== false &&
-        appState.current === "active" &&
-        ["inactive", "background"].includes(nextAppState)
-      ) {
-        options.debug &&
-          console.debug("useShareIntent[to-background] reset intent");
-        resetShareIntent();
+  const donateSendMessage = useCallback(
+    ({
+      conversationIdentifier,
+      name,
+      imageURL,
+      content,
+    }: DonateSendMessageOptions) => {
+      if (!conversationIdentifier || !name) {
+        console.error(
+          "donateSendMessage requires conversationIdentifier and name",
+        );
+        return;
       }
-      appState.current = nextAppState;
-    });
-    return () => {
-      subscription.remove();
-    };
-  }, [url, shareIntent, options.disabled]);
+      if (Platform.OS !== "ios") {
+        console.warn("donateSendMessage is only available on iOS");
+        return;
+      }
+      ExpoShareIntentModule?.donateSendMessage(
+        conversationIdentifier,
+        name,
+        imageURL,
+        content,
+      );
+    },
+    [],
+  );
 
-  /**
-   * Detect Native Module response
-   */
+  // Initial mount & URL change
   useEffect(() => {
-    if (options.disabled) {
-      options.debug &&
-        console.debug(
-          "expo-share-intent-next module is disabled by configuration!",
-        );
-      return;
-    } else if (!ExpoShareIntentModule) {
-      options.debug &&
-        console.warn(
-          "expo-share-intent-next module is disabled: ExpoShareIntentModule not found!",
-        );
+    if (!disabled) {
+      refreshIntent();
+    }
+  }, [disabled, refreshIntent]);
+
+  // Handle app state changes
+  useEffect(() => {
+    if (disabled) return;
+
+    const onAppStateChange = (nextState: AppStateStatus) => {
+      const prevState = appStateRef.current;
+      if (nextState === "active") {
+        debug && console.debug("App became active, refreshing intent");
+        refreshIntent();
+      } else if (
+        resetOnBackground &&
+        prevState === "active" &&
+        (nextState === "inactive" || nextState === "background")
+      ) {
+        debug && console.debug("App moved to background, resetting intent");
+        resetIntent();
+      }
+      appStateRef.current = nextState;
+    };
+
+    const subscription = AppState.addEventListener("change", onAppStateChange);
+    return () => subscription.remove();
+  }, [disabled, debug, refreshIntent, resetIntent, resetOnBackground]);
+
+  // Native module event listeners
+  useEffect(() => {
+    if (disabled) {
+      debug && console.debug("Share intent is disabled");
       return;
     }
-    const changeSubscription = ExpoShareIntentModule.addListener(
-      "onChange",
-      (event) => {
-        options.debug &&
-          console.debug(
-            "useShareIntent[onChange]",
-            JSON.stringify(event, null, 2),
-          );
-        try {
-          setSharedIntent(parseShareIntent(event.data, options));
-        } catch (e) {
-          options.debug && console.error("useShareIntent[onChange]", e);
-          setError("Cannot parse share intent value !");
-        }
-      },
-    );
-    const errorSubscription = ExpoShareIntentModule.addListener(
+    if (!ExpoShareIntentModule) {
+      debug &&
+        console.warn("ExpoShareIntentModule not available, share disabled");
+      return;
+    }
+
+    const changeSub = ExpoShareIntentModule.addListener("onChange", (event) => {
+      debug && console.debug("ShareIntent onChange:", JSON.stringify(event));
+      try {
+        const intent = parseShareIntent(event.data, options);
+        setShareIntent(intent);
+      } catch (err) {
+        debug && console.error("Error parsing intent", err);
+        setError("Failed to parse share intent");
+      }
+    });
+
+    const errorSub = ExpoShareIntentModule.addListener(
       "onError",
-      (event) => {
-        options.debug && console.debug("useShareIntent[error]", event?.data);
-        setError(event?.data);
+      ({ data }) => {
+        debug && console.debug("ShareIntent onError:", data);
+        setError(data);
       },
     );
+
     setIsReady(true);
     return () => {
-      changeSubscription.remove();
-      errorSubscription.remove();
+      changeSub.remove();
+      errorSub.remove();
     };
-  }, [options.disabled]);
+  }, [disabled, debug, options]);
 
   return {
     isReady,
-    hasShareIntent: isValueAvailable(shareIntent),
+    hasShareIntent: hasIntent,
     shareIntent,
     donateSendMessage,
-    resetShareIntent,
+    resetShareIntent: resetIntent,
     error,
-  };
-}
+  } as const;
+};
+
+export default useShareIntent;

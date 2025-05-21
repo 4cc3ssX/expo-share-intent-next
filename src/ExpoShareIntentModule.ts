@@ -5,7 +5,7 @@ import {
   DonateEventPayload,
   ErrorEventPayload,
   StateEventPayload,
-} from "./ExpoShareIntentModule.types";
+} from "./types";
 
 type ExpoShareIntentModuleEvents = {
   onError: (event: ErrorEventPayload) => void;
