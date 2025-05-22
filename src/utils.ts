@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
 import { createURL } from "expo-linking";
 
+import { DEFAULT_INTENT } from "./constants";
 import {
   AndroidShareIntent,
   IosShareIntent,
@@ -8,7 +9,6 @@ import {
   ShareIntentFile,
   ShareIntentOptions,
 } from "./types";
-import { DEFAULT_INTENT } from "./constants";
 
 /**
  * Determine the custom URI scheme for the app.

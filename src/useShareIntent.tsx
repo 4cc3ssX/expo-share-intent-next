@@ -26,7 +26,7 @@ export interface UseShareIntentResult {
   isReady: boolean;
   hasShareIntent: boolean;
   shareIntent: ShareIntent;
-  donateSendMessage: (options: DonateSendMessageOptions) => void;
+  donateSendMessage: (options: DonateSendMessageOptions) => Promise<void>;
   resetShareIntent: (clearNative?: boolean) => void;
   publishDirectShareTargets(
     contacts: PublishDirectShareTargetsContact[],
