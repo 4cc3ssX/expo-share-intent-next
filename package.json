@@ -1,6 +1,6 @@
 {
   "name": "expo-share-intent-next",
-  "version": "4.0.0",
+  "version": "1.0.0",
   "description": "Use native share intent for ios and android with expo",
   "homepage": "https://github.com/eatmatch/expo-share-intent-next/",
   "repository": {

@@ -27,8 +27,6 @@ A simple high-performance native module for handling share intents in Expo (Reac
   - [Expo Router](#expo-router)
   - [React Navigation](#react-navigation)
   - [iOS Custom View](#ios-custom-view-)
-- [Troubleshooting / FAQ](#troubleshooting---faq)
-- [Support](#support)
 
 ## Installation
 
