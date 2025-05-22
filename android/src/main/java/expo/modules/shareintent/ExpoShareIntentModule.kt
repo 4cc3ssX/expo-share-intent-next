@@ -229,6 +229,48 @@ class ExpoShareIntentModule : Module() {
         }
 
         /**
+         * Reports shortcut usage for a specific conversation
+         * @param conversationId Unique identifier for the conversation
+         */
+        private fun reportShortcutUsed(conversationId: String) {
+            try {
+                instance?.let { module ->
+                    ShortcutManagerCompat.reportShortcutUsed(module.context, conversationId)
+                }
+            } catch (e: Exception) {
+                notifyError("Error reporting shortcut usage: ${e.message}")
+            }
+        }
+
+        /**
+         * Sets dynamic shortcuts in order of importance
+         * @param shortcuts List of shortcuts ordered by importance (most important first)
+         */
+        private fun setDynamicShortcuts(shortcuts: List<ShortcutInfoCompat>) {
+            try {
+                instance?.let { module ->
+                    ShortcutManagerCompat.setDynamicShortcuts(module.context, shortcuts)
+                }
+            } catch (e: Exception) {
+                notifyError("Error setting dynamic shortcuts: ${e.message}")
+            }
+        }
+
+        /**
+         * Removes a long-lived shortcut
+         * @param shortcutId ID of the shortcut to remove
+         */
+        private fun removeLongLivedShortcut(shortcutId: String) {
+            try {
+                instance?.let { module ->
+                    ShortcutManagerCompat.removeLongLivedShortcuts(module.context, listOf(shortcutId))
+                }
+            } catch (e: Exception) {
+                notifyError("Error removing shortcut: ${e.message}")
+            }
+        }
+
+        /**
          * Handles intent with shared content
          * @param intent The received intent
          */
@@ -345,6 +387,26 @@ class ExpoShareIntentModule : Module() {
             ExpoShareIntentSingleton.isPending
         }
 
+        Function("reportShortcutUsed") { conversationId: String ->
+            reportShortcutUsed(conversationId)
+        }
+
+        AsyncFunction("setDynamicShortcuts") { shortcuts: List<Map<String, Any>> ->
+            val shortcutList = shortcuts.mapIndexed { index, shortcutData -> 
+                createShortcutFromData(shortcutData, index)
+            }.filterNotNull()
+            
+            setDynamicShortcuts(shortcutList)
+        }
+
+        Function("removeLongLivedShortcut") { shortcutId: String ->
+            removeLongLivedShortcut(shortcutId)
+        }
+
+        AsyncFunction("publishDirectShareTargets") { contacts: List<Map<String, Any>> ->
+            publishDirectShareTargets(contacts)
+        }
+
         OnNewIntent {
             handleShareIntent(it)
         }
@@ -356,6 +418,78 @@ class ExpoShareIntentModule : Module() {
         OnDestroy {
             instance = null
         }
+    }
+
+    /**
+     * Creates a ShortcutInfoCompat from the provided data
+     * @param shortcutData Map containing shortcut data
+     * @param position Position in the list (for ordering)
+     * @return ShortcutInfoCompat or null if creation failed
+     */
+    private fun createShortcutFromData(shortcutData: Map<String, Any>, position: Int): ShortcutInfoCompat? {
+        try {
+            val activity = currentActivity ?: return null
+            val conversationId = shortcutData["id"] as? String ?: return null
+            val name = shortcutData["name"] as? String ?: return null
+            val imageURL = shortcutData["imageURL"] as? String
+            
+            // Create intent for the shortcut
+            val targetClass = activity.javaClass
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                setClassName(activity.packageName, targetClass.name)
+                putExtra(Intent.EXTRA_SHORTCUT_ID, conversationId)
+                type = "text/plain" 
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            
+            // Shortcut categories - used to match shortcuts with share target definitions
+            val categories = setOf(TEXT_SHARE_CATEGORY)
+            
+            // Get the short label (first name or initial part of name)
+            val shortLabel = name.split(" ").firstOrNull() ?: name
+            
+            // Create shortcut builder with all required properties
+            val builder = ShortcutInfoCompat.Builder(context, conversationId)
+                .setShortLabel(shortLabel)
+                .setLongLabel(name)
+                .setIntent(intent)
+                .setRank(position)  // Set the rank/position for ordering
+                .setLongLived(true)
+                .setCategories(categories)
+                .addCapabilityBinding(SEND_MESSAGE_CAPABILITY)
+            
+            // Handle icon loading synchronously for this method
+            val icon = createDefaultIcon(name)
+            builder.setIcon(icon)
+            
+            // Asynchronously update the icon if URL is provided
+            if (!imageURL.isNullOrEmpty()) {
+                loadImageIcon(imageURL, name) { updatedIcon ->
+                    try {
+                        val updatedShortcut = builder.setIcon(updatedIcon).build()
+                        ShortcutManagerCompat.updateShortcuts(context, listOf(updatedShortcut))
+                    } catch (e: Exception) {
+                        Log.e("ExpoShareIntent", "Error updating shortcut icon: ${e.message}")
+                    }
+                }
+            }
+            
+            return builder.build()
+        } catch (e: Exception) {
+            Log.e("ExpoShareIntent", "Error creating shortcut: ${e.message}")
+            return null
+        }
+    }
+    
+    /**
+     * Creates a default icon for shortcuts when async loading isn't appropriate
+     * @param name Name to use for monogram
+     * @return IconCompat for the shortcut
+     */
+    private fun createDefaultIcon(name: String): IconCompat {
+        val monogram = createMonogramAvatar(name)
+        val adaptiveBitmap = createAdaptiveBitmap(monogram)
+        return IconCompat.createWithAdaptiveBitmap(adaptiveBitmap)
     }
 
     /**
@@ -820,6 +954,9 @@ class ExpoShareIntentModule : Module() {
                     // Push the dynamic shortcut
                     ShortcutManagerCompat.pushDynamicShortcut(context, shortcutInfo)
                     
+                    // Report shortcut usage
+                    ShortcutManagerCompat.reportShortcutUsed(context, conversationId)
+                    
                     // Notify success and resolve promise
                     val responseData = mapOf(
                         "conversationId" to conversationId,
@@ -841,6 +978,111 @@ class ExpoShareIntentModule : Module() {
         
         return promise
     }
+    
+    /**
+     * Publishes a list of direct share targets for contacts
+     * 
+     * @param contacts List of contact information to create share targets for
+     * @return True if successfully published, false otherwise
+     */
+    private fun publishDirectShareTargets(contacts: List<Map<String, Any>>): Boolean {
+        try {
+            val activity = currentActivity ?: return false
+            val packageName = context.packageName
+            val targetClass = activity.javaClass.name
+            
+            // Create shortcuts for each contact (limited to first 10 contacts)
+            val shortcuts = contacts.take(10).mapIndexed { index, contact ->
+                val id = contact["id"] as? String ?: UUID.randomUUID().toString()
+                val name = contact["name"] as? String ?: "Unknown"
+                val imageUrl = contact["imageUrl"] as? String
+                val shortLabel = name.split(" ").firstOrNull() ?: name
+                
+                // Create intent for shortcuts
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    setClassName(packageName, targetClass)
+                    putExtra(Intent.EXTRA_SHORTCUT_ID, id)
+                    putExtra("contactId", id)
+                    putExtra("contactName", name)
+                    type = "text/plain"
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                
+                // Create shortcut info builder
+                val builder = ShortcutInfoCompat.Builder(context, id)
+                    .setShortLabel(shortLabel)
+                    .setLongLabel(name)
+                    .setRank(index)  // Lower index = higher priority
+                    .setIntent(intent)
+                    .setLongLived(true)
+                    .setCategories(setOf(TEXT_SHARE_CATEGORY))
+                    .setPerson(createPerson(id, name, imageUrl))
+                    .addCapabilityBinding(SEND_MESSAGE_CAPABILITY)
+                
+                // Create default icon
+                val defaultIcon = createDefaultIcon(name)
+                builder.setIcon(defaultIcon)
+                
+                builder.build()
+            }
+            
+            // Remove existing shortcuts first 
+            ShortcutManagerCompat.removeAllDynamicShortcuts(context)
+            
+            // Add new shortcuts
+            return if (shortcuts.isNotEmpty()) {
+                ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("ExpoShareIntent", "Failed to publish direct share targets: ${e.message}")
+            return false
+        }
+    }
+    
+    /**
+     * Creates a Person object for shortcuts
+     */
+    private fun createPerson(id: String, name: String, imageUrl: String?): androidx.core.app.Person {
+        val builder = androidx.core.app.Person.Builder()
+            .setName(name)
+            .setKey(id)
+            .setImportant(true)
+        
+        // Load image icon if available, otherwise use monogram
+        if (!imageUrl.isNullOrEmpty()) {
+            try {
+                val uri = Uri.parse(imageUrl)
+                builder.setUri(uri.toString())
+                
+                // Try to set icon if possible (synchronously for simplicity)
+                if (imageUrl.startsWith("file://") || imageUrl.startsWith("/")) {
+                    val bitmap = BitmapFactory.decodeFile(
+                        imageUrl.replace("file://", "")
+                    )
+                    if (bitmap != null) {
+                        val adaptiveBitmap = createAdaptiveBitmap(bitmap)
+                        val icon = IconCompat.createWithAdaptiveBitmap(adaptiveBitmap)
+                        builder.setIcon(icon)
+                    } else {
+                        builder.setIcon(createDefaultIcon(name))
+                    }
+                } else {
+                    builder.setIcon(createDefaultIcon(name))
+                }
+            } catch (e: Exception) {
+                builder.setIcon(createDefaultIcon(name))
+            }
+        } else {
+            builder.setIcon(createDefaultIcon(name))
+        }
+        
+        return builder.build()
+    }
+
+    // ...existing code...
 }
 
 /**

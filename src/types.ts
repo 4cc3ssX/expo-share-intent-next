@@ -141,6 +141,24 @@ export interface AndroidShareIntentFile {
 }
 
 /**
+ * Direct share contact for Android direct share targets
+ */
+export interface DirectShareContact {
+  /**
+   * Unique identifier for the contact
+   */
+  id: string;
+  /**
+   * Name of the contact
+   */
+  name: string;
+  /**
+   * Optional URL to profile picture
+   */
+  imageURL?: string;
+}
+
+/**
  * Options for donating a conversation shortcut for Direct Share targets (Android)
  * or Siri Suggestions (iOS)
  */

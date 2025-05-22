@@ -162,6 +162,10 @@ export const useShareIntent = (
     hasShareIntent: hasIntent,
     shareIntent,
     donateSendMessage,
+    publishDirectShareTargets,
+    reportShortcutUsed,
+    removeShortcut,
+    removeAllShortcuts,
     resetShareIntent: resetIntent,
     error,
   };
