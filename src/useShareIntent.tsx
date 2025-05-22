@@ -8,10 +8,15 @@ import {
   clearShareIntent,
   donateSendMessage,
   getShareIntent,
+  publishDirectShareTargets,
+  reportShortcutUsed,
+  removeShortcut,
+  removeAllShortcuts,
 } from "./ShareIntent";
 import { DEFAULT_INTENT, LOG_TAG } from "./constants";
 import {
   DonateSendMessageOptions,
+  PublishDirectShareTargetsContact,
   ShareIntent,
   ShareIntentOptions,
 } from "./types";
@@ -23,6 +28,12 @@ export interface UseShareIntentResult {
   shareIntent: ShareIntent;
   donateSendMessage: (options: DonateSendMessageOptions) => void;
   resetShareIntent: (clearNative?: boolean) => void;
+  publishDirectShareTargets(
+    contacts: PublishDirectShareTargetsContact[],
+  ): Promise<boolean>;
+  reportShortcutUsed(shortcutId: string): void;
+  removeShortcut(shortcutId: string): void;
+  removeAllShortcuts(): void;
   error: string | null;
 }
 

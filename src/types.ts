@@ -181,5 +181,11 @@ export interface DonateSendMessageOptions {
   content?: string;
 }
 
+export interface PublishDirectShareTargetsContact {
+  id: string;
+  name: string;
+  imageURL?: string;
+}
+
 export type NativeShareIntent = AndroidShareIntent | IosShareIntent;
 export type NativeShareIntentFile = AndroidShareIntentFile | IosShareIntentFile;

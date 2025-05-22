@@ -1,6 +1,9 @@
 import { requireOptionalNativeModule, NativeModule } from "expo-modules-core";
 
-import { ExpoShareIntentEvents } from "./types";
+import {
+  ExpoShareIntentEvents,
+  PublishDirectShareTargetsContact,
+} from "./types";
 
 declare class ExpoShareIntentType extends NativeModule<ExpoShareIntentEvents> {
   getShareIntent(url?: string): Promise<string>;
@@ -11,6 +14,15 @@ declare class ExpoShareIntentType extends NativeModule<ExpoShareIntentEvents> {
     imageURL?: string,
     content?: string,
   ): Promise<void>;
+
+  // Android-only methods
+  publishDirectShareTargets(
+    contacts: PublishDirectShareTargetsContact[],
+  ): Promise<boolean>;
+  reportShortcutUsed(shortcutId: string): void;
+  removeShortcut(shortcutId: string): void;
+  removeAllShortcuts(): void;
+
   hasShareIntent(key: string): Promise<boolean>;
 }
 
