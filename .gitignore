@@ -48,6 +48,7 @@ yarn-debug.log
 yarn-error.log
 
 # Expo
+*.tsbuildinfo
 example/*/.expo
 example/*/android
 example/*/ios
