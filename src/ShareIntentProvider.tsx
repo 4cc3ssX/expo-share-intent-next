@@ -2,6 +2,7 @@ import React, { useContext } from "react";
 
 import { DEFAULT_INTENT } from "./constants";
 import {
+  DirectShareContact,
   DonateSendMessageOptions,
   ShareIntent,
   ShareIntentOptions,
@@ -12,7 +13,10 @@ type ShareIntentContextState = {
   isReady: boolean;
   hasShareIntent: boolean;
   shareIntent: ShareIntent;
-  donateSendMessage: (options: DonateSendMessageOptions) => void;
+  donateSendMessage: (options: DonateSendMessageOptions) => Promise<void>;
+  publishDirectShareTargets: (
+    contacts: DirectShareContact[],
+  ) => Promise<boolean>;
   resetShareIntent: (clearNativeModule?: boolean) => void;
   error: string | null;
 };
@@ -21,7 +25,8 @@ const ShareIntentContext = React.createContext<ShareIntentContextState>({
   isReady: false,
   hasShareIntent: false,
   shareIntent: DEFAULT_INTENT,
-  donateSendMessage: () => {},
+  donateSendMessage: () => Promise.reject(new Error("Not implemented")),
+  publishDirectShareTargets: () => Promise.reject(new Error("Not implemented")),
   resetShareIntent: () => {},
   error: null,
 });
@@ -44,6 +49,7 @@ export function ShareIntentProvider({
     hasShareIntent,
     shareIntent,
     donateSendMessage,
+    publishDirectShareTargets,
     resetShareIntent,
     error,
   } = useShareIntent(options);
@@ -55,6 +61,7 @@ export function ShareIntentProvider({
         hasShareIntent,
         shareIntent,
         donateSendMessage,
+        publishDirectShareTargets,
         resetShareIntent,
         error,
       }}

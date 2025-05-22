@@ -23,6 +23,16 @@ declare class ExpoShareIntentModuleType extends NativeModule<ExpoShareIntentModu
     imageURL?: string,
     content?: string,
   ): Promise<void>;
+  publishDirectShareTargets(
+    contacts: Array<{
+      id: string;
+      name: string;
+      imageURL?: string;
+    }>,
+  ): Promise<boolean>;
+  reportShortcutUsed(shortcutId: string): void;
+  removeShortcut(shortcutId: string): void;
+  removeAllShortcuts(): void;
   hasShareIntent(key: string): boolean;
 }
 

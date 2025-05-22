@@ -1,19 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Used by share target shortcuts -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-
-    <!-- For file sharing compatibility with older Android versions -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:mimeType="*/*" />
-        </intent>
-    </queries>
-
-    <!-- Needed for compatibility with ChooserTargetServiceCompat -->
     <application>
-        <meta-data
-            android:name="android.service.chooser.chooser_target_service"
-            android:value="androidx.sharetarget.ChooserTargetServiceCompat" />
+        <!-- Share Intent Activity -->
+        <activity
+            android:name=".ExpoShareIntentActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- Reference to the shortcuts.xml file -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
     </application>
 </manifest>

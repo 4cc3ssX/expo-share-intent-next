@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useShareIntentContext } from "expo-share-intent-next";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -113,51 +114,84 @@ interface Props {
 export default function ContactsScreen({ navigation }: Props) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [donatedContacts, setDonatedContacts] = useState<
-    Record<string, boolean>
+    Record<string, boolean | "loading">
   >({});
   const [loading, setLoading] = useState(true);
-  const { donateSendMessage } = useShareIntentContext();
+  const { donateSendMessage, publishDirectShareTargets } =
+    useShareIntentContext();
 
   useEffect(() => {
     // Generate 100 mock contacts
     const mockContacts = generateMockContacts(100);
     setContacts(mockContacts);
 
-    setLoading(true);
-    console.log("Donating 15 Direct Share targets...");
+    if (Platform.OS === "android") {
+      setLoading(true);
+      console.log("Publishing Direct Share targets...");
 
-    // Track donated status
-    const donated: Record<string, boolean> = {};
+      // Convert contacts to the format expected by publishDirectShareTargets
+      const contactsForSharing = mockContacts.slice(0, 15).map((contact) => ({
+        id: contact.id,
+        name: contact.name,
+        imageURL: contact.avatar || undefined,
+      }));
 
-    // Use Promise.all to track when all contacts are donated
-    const donatePromises = mockContacts.slice(0, 15).map((contact) => {
-      return new Promise<void>((resolve) => {
-        donateSendMessage({
-          conversationId: contact.id,
-          name: contact.name,
-          imageURL: contact.avatar || undefined,
-          content: contact.lastMessage,
-        })
-          .then(() => {
+      // Publish all contacts at once using the new method
+      publishDirectShareTargets(contactsForSharing)
+        .then((success) => {
+          console.log("Published Direct Share targets:", success);
+
+          // Mark all contacts as donated
+          const donated: Record<string, boolean> = {};
+          contactsForSharing.forEach((contact) => {
             donated[contact.id] = true;
-            setDonatedContacts((prev) => ({ ...prev, [contact.id]: true }));
-            resolve();
-          })
-          .catch(() => {
-            // Mark as false if there was an error
-            donated[contact.id] = false;
-            setDonatedContacts((prev) => ({ ...prev, [contact.id]: false }));
-            resolve();
           });
-      });
-    });
 
-    // When all donations are complete
-    Promise.all(donatePromises).then(() => {
-      setLoading(false);
-      console.log("Finished donating Direct Share targets");
-    });
-  }, [donateSendMessage]);
+          setDonatedContacts(donated);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error("Failed to publish Direct Share targets:", error);
+          setLoading(false);
+        });
+    } else {
+      // For iOS or other platforms, use the original donateSendMessage approach
+      setLoading(true);
+      console.log("Donating 15 Direct Share targets...");
+
+      // Track donated status
+      const donated: Record<string, boolean> = {};
+
+      // Use Promise.all to track when all contacts are donated
+      const donatePromises = mockContacts.slice(0, 15).map((contact) => {
+        return new Promise<void>((resolve) => {
+          donateSendMessage({
+            conversationId: contact.id,
+            name: contact.name,
+            imageURL: contact.avatar || undefined,
+            content: contact.lastMessage,
+          })
+            .then(() => {
+              donated[contact.id] = true;
+              setDonatedContacts((prev) => ({ ...prev, [contact.id]: true }));
+              resolve();
+            })
+            .catch(() => {
+              // Mark as false if there was an error
+              donated[contact.id] = false;
+              setDonatedContacts((prev) => ({ ...prev, [contact.id]: false }));
+              resolve();
+            });
+        });
+      });
+
+      // When all donations are complete
+      Promise.all(donatePromises).then(() => {
+        setLoading(false);
+        console.log("Finished donating Direct Share targets");
+      });
+    }
+  }, [donateSendMessage, publishDirectShareTargets]);
 
   const handleContactPress = (contact: Contact) => {
     // Show loading state for this contact
