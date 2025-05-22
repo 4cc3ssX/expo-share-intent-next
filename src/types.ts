@@ -20,6 +20,13 @@ export type DonateEventPayloadData = {
   content?: string;
 };
 
+export type ExpoShareIntentEvents = {
+  onError: (event: ErrorEventPayload) => void;
+  onChange: (event: ChangeEventPayload) => void;
+  onStateChange: (event: StateEventPayload) => void;
+  onDonate: (event: DonateEventPayload) => void;
+};
+
 /**
  * Options for configuring the `useShareIntent` hook.
  */

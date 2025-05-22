@@ -6,7 +6,7 @@ import {
   ShareIntent,
   ShareIntentOptions,
 } from "./types";
-import useShareIntent from "./useShareIntent";
+import { useShareIntent } from "./useShareIntent";
 
 type ShareIntentContextState = {
   isReady: boolean;
