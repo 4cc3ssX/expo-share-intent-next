@@ -995,7 +995,7 @@ class ExpoShareIntentModule : Module() {
             val shortcuts = contacts.take(10).mapIndexed { index, contact ->
                 val id = contact["id"] as? String ?: UUID.randomUUID().toString()
                 val name = contact["name"] as? String ?: "Unknown"
-                val imageUrl = contact["imageUrl"] as? String
+                val imageUrl = contact["imageURL"] as? String  
                 val shortLabel = name.split(" ").firstOrNull() ?: name
                 
                 // Create intent for shortcuts
