@@ -21,5 +21,9 @@ export const getShareExtensionBundledIdentifier = (
 };
 
 export const getUserActivityTypes = (userActivityTypes: string[]) => {
-  return [...userActivityTypes, "INSendMessageIntent"];
+  if (!userActivityTypes.includes("INSendMessageIntent")) {
+    userActivityTypes.push("INSendMessageIntent");
+  }
+
+  return userActivityTypes;
 };
