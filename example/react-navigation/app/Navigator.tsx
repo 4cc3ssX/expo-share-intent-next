@@ -14,11 +14,12 @@ import { RootStackParamList } from "./types";
 
 import HomeScreen from "./HomeScreen";
 import ShareIntentScreen from "./ShareIntentScreen";
+import ContactsScreen from "./ContactsScreen";
 import {
   ShareIntentModule,
   getScheme,
   getShareExtensionKey,
-} from "expo-share-intent-next";
+} from "../../../src";
 
 const Stack = createNativeStackNavigator();
 
@@ -41,6 +42,7 @@ const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       Home: "home",
       ShareIntent: "shareintent",
+      Contacts: "contacts",
     },
   },
   // see: https://reactnavigation.org/docs/configuring-links/#advanced-cases
@@ -148,6 +150,7 @@ export default function Navigator() {
       >
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="ShareIntent" component={ShareIntentScreen} />
+        <Stack.Screen name="Contacts" component={ContactsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -2,32 +2,24 @@
 
 ![npm](https://img.shields.io/npm/v/expo-share-intent-next.svg)
 ![License](https://img.shields.io/npm/l/expo-share-intent-next.svg)
-![Downloads](https://img.shields.io/npm/dm/expo-share-intent-next.svg)
-![GitHub stars](https://img.shields.io/github/stars/eatmatch/expo-share-intent-next.svg)
 
-Allow sharing **URL, text, images, videos and files** to your **iOS** and **Android** app, using a simple high-performance native module for Expo (React Native).
-
-> The aim of this project is to have identical behavior between iOS and Android, and so to implement a single logic in the main application. In this way, when sharing data, the user is directly redirected to the main application, which will be responsible to manage the external data.
+A simple high-performance native module for handling share intents in Expo (React Native) apps. Share **URLs, text, images, videos and files** to your **iOS** and **Android** apps with a consistent behavior across platforms.
 
 | iOS                                                                                                                                                     | Android                                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| ![Simulator Screen Recording - iPhone 15 Pro - 2024-12-11 at 09 09 40](https://github.com/user-attachments/assets/b98d1ec1-8ad3-410f-b09b-14b4dce52260) | ![Simulator Android - expo share intent](https://github.com/user-attachments/assets/d2c38b8f-6ec1-4c62-b7b8-dc13aeea8c93) |
+| ![Simulator Screen Recording - iPhone 15 Pro](https://github.com/user-attachments/assets/b98d1ec1-8ad3-410f-b09b-14b4dce52260) | ![Simulator Android](https://github.com/user-attachments/assets/d2c38b8f-6ec1-4c62-b7b8-dc13aeea8c93) |
 
-## Versioning
+## Compatibility
 
-Ensure you use versions that work together
-
-| Expo       | Supported `expo-share-intent-next` version |
-| ---------- | ------------------------------------- |
-| **SDK 53** | 4.0+                                  |
-| **SDK 52** | 3.0+                                  |
-| **SDK 51** | 2.0+                                  |
-| **SDK 50** | 1.0+                                  |
-| **SDK 49** | 0.2+                                  |
+| Expo       | Compatible Version |
+| ---------- | ------------------ |
+| **SDK 53** | 4.0+               |
+| **SDK 52** | 3.0+               |
+| **SDK 51** | 2.0+               |
+| **SDK 50** | 1.0+               |
+| **SDK 49** | 0.2+               |
 
 > iOS privacy manifest is available since v1.4.1
-
-## Table of Contents
 
 - [Usage](#usage)
   - [Configure Content Types](#customize-content-types-in-appjson)
