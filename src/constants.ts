@@ -7,3 +7,5 @@ export const DEFAULT_INTENT: ShareIntent = {
   type: null,
   conversationId: null,
 };
+
+export const LOG_TAG = "[useShareIntent]";

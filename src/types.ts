@@ -20,6 +20,13 @@ export type DonateEventPayloadData = {
   content?: string;
 };
 
+export type ExpoShareIntentEvents = {
+  onError: (event: ErrorEventPayload) => void;
+  onChange: (event: ChangeEventPayload) => void;
+  onStateChange: (event: StateEventPayload) => void;
+  onDonate: (event: DonateEventPayload) => void;
+};
+
 /**
  * Options for configuring the `useShareIntent` hook.
  */
@@ -172,6 +179,12 @@ export interface DonateSendMessageOptions {
    * Optional context or last message content
    */
   content?: string;
+}
+
+export interface PublishDirectShareTargetsContact {
+  id: string;
+  name: string;
+  imageURL?: string;
 }
 
 export type NativeShareIntent = AndroidShareIntent | IosShareIntent;
