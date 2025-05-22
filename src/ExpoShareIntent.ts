@@ -1,9 +1,6 @@
 import { requireOptionalNativeModule, NativeModule } from "expo-modules-core";
 
-import {
-  ExpoShareIntentEvents,
-  PublishDirectShareTargetsContact,
-} from "./types";
+import { ExpoShareIntentEvents } from "./types";
 
 declare class ExpoShareIntentType extends NativeModule<ExpoShareIntentEvents> {
   getShareIntent(url?: string): Promise<string>;
