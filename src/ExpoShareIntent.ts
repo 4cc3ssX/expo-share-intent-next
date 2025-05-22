@@ -17,7 +17,11 @@ declare class ExpoShareIntentType extends NativeModule<ExpoShareIntentEvents> {
 
   // Android-only methods
   publishDirectShareTargets(
-    contacts: PublishDirectShareTargetsContact[],
+    contacts: {
+      id: string;
+      name: string;
+      imageURL?: string;
+    }[],
   ): Promise<boolean>;
   reportShortcutUsed(shortcutId: string): void;
   removeShortcut(shortcutId: string): void;

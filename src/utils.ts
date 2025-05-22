@@ -1,5 +1,6 @@
 import Constants from "expo-constants";
 import { createURL } from "expo-linking";
+import { Image, ImageURISource } from "react-native";
 
 import { DEFAULT_INTENT } from "./constants";
 import {
@@ -7,8 +8,20 @@ import {
   IosShareIntent,
   ShareIntent,
   ShareIntentFile,
+  ShareIntentImageType,
   ShareIntentOptions,
 } from "./types";
+
+export const resolveImageSource = (
+  image: ShareIntentImageType,
+): ImageURISource => {
+  if (typeof image === "number") {
+    const source = Image.resolveAssetSource(image);
+    return { uri: source.uri };
+  }
+
+  return image;
+};
 
 /**
  * Determine the custom URI scheme for the app.

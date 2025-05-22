@@ -1,3 +1,5 @@
+import { Image } from "react-native";
+
 import { ExpoShareIntent } from "./ExpoShareIntent";
 import { LOG_TAG } from "./constants";
 import type {
@@ -5,6 +7,7 @@ import type {
   ExpoShareIntentEvents,
   PublishDirectShareTargetsContact,
 } from "./types";
+import { resolveImageSource } from "./utils";
 
 export async function getShareIntent(url?: string): Promise<string> {
   if (!ExpoShareIntent?.getShareIntent) {
@@ -29,7 +32,7 @@ export async function donateSendMessage(
     throw new Error("ExpoShareIntent module is not available");
   }
 
-  const { conversationId, name, imageURL, content } = options;
+  const { conversationId, name, image, content } = options;
   if (!conversationId || !name) {
     console.error(
       LOG_TAG,
@@ -38,10 +41,12 @@ export async function donateSendMessage(
     return;
   }
 
+  const imageSource = image ? resolveImageSource(image) : undefined;
+
   return ExpoShareIntent.donateSendMessage(
     conversationId,
     name,
-    imageURL,
+    imageSource?.uri,
     content,
   );
 }
@@ -53,7 +58,19 @@ export async function publishDirectShareTargets(
     throw new Error("ExpoShareIntent module is not available");
   }
 
-  return ExpoShareIntent.publishDirectShareTargets(contacts);
+  const mappedContacts = contacts.map((contact) => {
+    if (typeof contact.image === "number") {
+      return {
+        id: contact.id,
+        name: contact.name,
+        imageURL: Image.resolveAssetSource(contact.image).uri,
+      };
+    }
+
+    return contact;
+  });
+
+  return ExpoShareIntent.publishDirectShareTargets(mappedContacts);
 }
 
 export function reportShortcutUsed(shortcutId: string): void {

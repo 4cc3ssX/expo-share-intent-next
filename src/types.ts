@@ -1,3 +1,5 @@
+import { ImageRequireSource, ImageURISource } from "react-native";
+
 export type ChangeEventPayload = {
   data: string;
 };
@@ -26,6 +28,8 @@ export type ExpoShareIntentEvents = {
   onStateChange: (event: StateEventPayload) => void;
   onDonate: (event: DonateEventPayload) => void;
 };
+
+export type ShareIntentImageType = ImageURISource | ImageRequireSource;
 
 /**
  * Options for configuring the `useShareIntent` hook.
@@ -174,7 +178,7 @@ export interface DonateSendMessageOptions {
   /**
    * Optional URL to the profile picture (local or remote)
    */
-  imageURL?: string;
+  image?: ShareIntentImageType;
   /**
    * Optional context or last message content
    */
@@ -184,7 +188,7 @@ export interface DonateSendMessageOptions {
 export interface PublishDirectShareTargetsContact {
   id: string;
   name: string;
-  imageURL?: string;
+  image?: ShareIntentImageType;
 }
 
 export type NativeShareIntent = AndroidShareIntent | IosShareIntent;
