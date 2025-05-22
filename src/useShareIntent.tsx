@@ -77,6 +77,14 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
         return Promise.reject(new Error("Missing required parameters"));
       }
 
+      if (Platform.OS !== "ios" && Platform.OS !== "android") {
+        debug &&
+          console.debug(
+            "donateSendMessage is only available on iOS and Android",
+          );
+        return Promise.resolve();
+      }
+
       return (
         ExpoShareIntentModule?.donateSendMessage(
           conversationId,
@@ -86,7 +94,7 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
         ) || Promise.reject(new Error("Module not available"))
       );
     },
-    [],
+    [debug],
   );
 
   /**
@@ -113,6 +121,58 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
     },
     [debug],
   );
+
+  /**
+   * Report shortcut usage (Android only)
+   */
+  const reportShortcutUsed = useCallback(
+    (shortcutId: string): void => {
+      if (Platform.OS !== "android") {
+        debug && console.debug("reportShortcutUsed is Android only");
+        return;
+      }
+
+      if (!shortcutId) {
+        console.error("reportShortcutUsed requires a shortcut ID");
+        return;
+      }
+
+      ExpoShareIntentModule?.reportShortcutUsed?.(shortcutId);
+    },
+    [debug],
+  );
+
+  /**
+   * Remove a specific shortcut (Android only)
+   */
+  const removeShortcut = useCallback(
+    (shortcutId: string): void => {
+      if (Platform.OS !== "android") {
+        debug && console.debug("removeShortcut is Android only");
+        return;
+      }
+
+      if (!shortcutId) {
+        console.error("removeShortcut requires a shortcut ID");
+        return;
+      }
+
+      ExpoShareIntentModule?.removeShortcut?.(shortcutId);
+    },
+    [debug],
+  );
+
+  /**
+   * Remove all shortcuts (Android only)
+   */
+  const removeAllShortcuts = useCallback((): void => {
+    if (Platform.OS !== "android") {
+      debug && console.debug("removeAllShortcuts is Android only");
+      return;
+    }
+
+    ExpoShareIntentModule?.removeAllShortcuts?.();
+  }, [debug]);
 
   // Initial mount & URL change
   useEffect(() => {
@@ -196,6 +256,9 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
     shareIntent,
     donateSendMessage,
     publishDirectShareTargets,
+    reportShortcutUsed,
+    removeShortcut,
+    removeAllShortcuts,
     resetShareIntent: resetIntent,
     error,
   } as const;

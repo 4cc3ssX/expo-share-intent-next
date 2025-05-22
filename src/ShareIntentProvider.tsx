@@ -17,6 +17,9 @@ type ShareIntentContextState = {
   publishDirectShareTargets: (
     contacts: DirectShareContact[],
   ) => Promise<boolean>;
+  reportShortcutUsed: (shortcutId: string) => void;
+  removeShortcut: (shortcutId: string) => void;
+  removeAllShortcuts: () => void;
   resetShareIntent: (clearNativeModule?: boolean) => void;
   error: string | null;
 };
@@ -27,6 +30,9 @@ const ShareIntentContext = React.createContext<ShareIntentContextState>({
   shareIntent: DEFAULT_INTENT,
   donateSendMessage: () => Promise.reject(new Error("Not implemented")),
   publishDirectShareTargets: () => Promise.reject(new Error("Not implemented")),
+  reportShortcutUsed: () => {},
+  removeShortcut: () => {},
+  removeAllShortcuts: () => {},
   resetShareIntent: () => {},
   error: null,
 });
@@ -50,6 +56,9 @@ export function ShareIntentProvider({
     shareIntent,
     donateSendMessage,
     publishDirectShareTargets,
+    reportShortcutUsed,
+    removeShortcut,
+    removeAllShortcuts,
     resetShareIntent,
     error,
   } = useShareIntent(options);
@@ -62,6 +71,9 @@ export function ShareIntentProvider({
         shareIntent,
         donateSendMessage,
         publishDirectShareTargets,
+        reportShortcutUsed,
+        removeShortcut,
+        removeAllShortcuts,
         resetShareIntent,
         error,
       }}

@@ -23,6 +23,8 @@ declare class ExpoShareIntentModuleType extends NativeModule<ExpoShareIntentModu
     imageURL?: string,
     content?: string,
   ): Promise<void>;
+
+  // Android-only methods
   publishDirectShareTargets(
     contacts: Array<{
       id: string;
@@ -33,6 +35,7 @@ declare class ExpoShareIntentModuleType extends NativeModule<ExpoShareIntentModu
   reportShortcutUsed(shortcutId: string): void;
   removeShortcut(shortcutId: string): void;
   removeAllShortcuts(): void;
+
   hasShareIntent(key: string): boolean;
 }
 
