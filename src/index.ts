@@ -1,4 +1,9 @@
-export type { ShareIntent, ShareIntentFile } from "./types";
+export type {
+  ShareIntent,
+  ShareIntentFile,
+  DonateSendMessageOptions,
+  DirectShareContact,
+} from "./types";
 
 export { default as ShareIntentModule } from "./ExpoShareIntentModule";
 

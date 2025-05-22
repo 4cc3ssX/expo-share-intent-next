@@ -5,6 +5,7 @@ import { AppState, AppStateStatus, Platform } from "react-native";
 import ExpoShareIntentModule from "./ExpoShareIntentModule";
 import { DEFAULT_INTENT } from "./constants";
 import {
+  DirectShareContact,
   DonateSendMessageOptions,
   ShareIntent,
   ShareIntentOptions,
@@ -73,18 +74,105 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
     ({ conversationId, name, imageURL, content }: DonateSendMessageOptions) => {
       if (!conversationId || !name) {
         console.error("donateSendMessage requires conversationId and name");
+        return Promise.reject(new Error("Missing required parameters"));
+      }
+
+      if (Platform.OS !== "ios" && Platform.OS !== "android") {
+        debug &&
+          console.debug(
+            "donateSendMessage is only available on iOS and Android",
+          );
+        return Promise.resolve();
+      }
+
+      return (
+        ExpoShareIntentModule?.donateSendMessage(
+          conversationId,
+          name,
+          imageURL,
+          content,
+        ) || Promise.reject(new Error("Module not available"))
+      );
+    },
+    [debug],
+  );
+
+  /**
+   * Publish multiple direct share targets at once (Android only)
+   */
+  const publishDirectShareTargets = useCallback(
+    (contacts: DirectShareContact[]): Promise<boolean> => {
+      if (Platform.OS !== "android") {
+        debug && console.debug("publishDirectShareTargets is Android only");
+        return Promise.resolve(false);
+      }
+
+      if (!contacts || contacts.length === 0) {
+        console.error(
+          "publishDirectShareTargets requires at least one contact",
+        );
+        return Promise.reject(new Error("No contacts provided"));
+      }
+
+      return (
+        ExpoShareIntentModule?.publishDirectShareTargets(contacts) ||
+        Promise.reject(new Error("Module not available"))
+      );
+    },
+    [debug],
+  );
+
+  /**
+   * Report shortcut usage (Android only)
+   */
+  const reportShortcutUsed = useCallback(
+    (shortcutId: string): void => {
+      if (Platform.OS !== "android") {
+        debug && console.debug("reportShortcutUsed is Android only");
         return;
       }
 
-      ExpoShareIntentModule?.donateSendMessage(
-        conversationId,
-        name,
-        imageURL,
-        content,
-      );
+      if (!shortcutId) {
+        console.error("reportShortcutUsed requires a shortcut ID");
+        return;
+      }
+
+      ExpoShareIntentModule?.reportShortcutUsed?.(shortcutId);
     },
-    [],
+    [debug],
   );
+
+  /**
+   * Remove a specific shortcut (Android only)
+   */
+  const removeShortcut = useCallback(
+    (shortcutId: string): void => {
+      if (Platform.OS !== "android") {
+        debug && console.debug("removeShortcut is Android only");
+        return;
+      }
+
+      if (!shortcutId) {
+        console.error("removeShortcut requires a shortcut ID");
+        return;
+      }
+
+      ExpoShareIntentModule?.removeShortcut?.(shortcutId);
+    },
+    [debug],
+  );
+
+  /**
+   * Remove all shortcuts (Android only)
+   */
+  const removeAllShortcuts = useCallback((): void => {
+    if (Platform.OS !== "android") {
+      debug && console.debug("removeAllShortcuts is Android only");
+      return;
+    }
+
+    ExpoShareIntentModule?.removeAllShortcuts?.();
+  }, [debug]);
 
   // Initial mount & URL change
   useEffect(() => {
@@ -108,7 +196,6 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
         (nextState === "inactive" || nextState === "background")
       ) {
         debug && console.debug("App moved to background, resetting intent");
-        resetIntent();
       }
       appStateRef.current = nextState;
     };
@@ -168,6 +255,10 @@ const useShareIntent = (options: ShareIntentOptions = {}) => {
     hasShareIntent: hasIntent,
     shareIntent,
     donateSendMessage,
+    publishDirectShareTargets,
+    reportShortcutUsed,
+    removeShortcut,
+    removeAllShortcuts,
     resetShareIntent: resetIntent,
     error,
   } as const;
