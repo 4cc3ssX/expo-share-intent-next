@@ -17,21 +17,29 @@ public class ExpoShareIntentModule: Module {
 
         // Defines a JavaScript function that always returns a Promise and whose native code
         // is by default dispatched on the different thread than the JavaScript runtime runs on.
-        AsyncFunction("getShareIntent") { (url: String) in
-            let fileUrl = URL(string: url)
+        AsyncFunction("getShareIntent") { (url: String?, promise: Promise) in
+            guard let urlString = url else {
+                promise.reject("E_NO_URL", "getShareIntent: URL was nil")
+                return
+            }
+
+            let fileUrl = URL(string: urlString)
             let json = handleUrl(url: fileUrl)
             if json != "error" && json != "empty" {
                 self.sendEvent(
                     "onChange",
                     [
                         "data": json
-                    ])
+                    ]
+                )
             }
         }
 
         AsyncFunction("donateSendMessage") {
             (
-                conversationId: String, name: String, imageURL: String?,
+                conversationId: String,
+                name: String,
+                imageURL: String?,
                 content: String?
             ) in
 
@@ -44,7 +52,9 @@ public class ExpoShareIntentModule: Module {
 
             let recipient = INPerson(
                 personHandle: INPersonHandle(
-                    value: conversationId, type: .unknown),
+                    value: conversationId,
+                    type: .unknown
+                ),
                 nameComponents: nil,
                 displayName: name,
                 image: image,
@@ -66,10 +76,14 @@ public class ExpoShareIntentModule: Module {
             )
             intent.suggestedInvocationPhrase = "Send message to \(name)"
             intent.setImage(
-                image, forParameterNamed: \.speakableGroupName)
+                image,
+                forParameterNamed: \.speakableGroupName
+            )
 
             let interaction = INInteraction(
-                intent: intent, response: nil)
+                intent: intent,
+                response: nil
+            )
             try await withCheckedThrowingContinuation {
                 (continuation: CheckedContinuation<Void, Error>) in
                 interaction.donate { error in
@@ -87,7 +101,8 @@ public class ExpoShareIntentModule: Module {
                             "onDonate",
                             [
                                 "data": json
-                            ])
+                            ]
+                        )
                         continuation.resume()
                     }
                 }
@@ -115,7 +130,9 @@ public class ExpoShareIntentModule: Module {
     ) async -> INImage {
         // always have a fallback UIImage
         let fallback = createMonogramAvatar(
-            for: name, size: .init(width: size, height: size))
+            for: name,
+            size: .init(width: size, height: size)
+        )
 
         guard let urlString = urlString,
             let url = URL(string: urlString)
@@ -166,12 +183,15 @@ public class ExpoShareIntentModule: Module {
             return image
         }
         let cropped = UIImage(
-            cgImage: cgCropped, scale: image.scale,
-            orientation: image.imageOrientation)
+            cgImage: cgCropped,
+            scale: image.scale,
+            orientation: image.imageOrientation
+        )
 
         // now scale it down to your target size
         let renderer = UIGraphicsImageRenderer(
-            size: .init(width: size, height: size))
+            size: .init(width: size, height: size)
+        )
         return renderer.image { _ in
             cropped.draw(in: CGRect(x: 0, y: 0, width: size, height: size))
         }
@@ -179,7 +199,8 @@ public class ExpoShareIntentModule: Module {
 
     // MARK: Create Monogram Avatar
     func createMonogramAvatar(
-        for name: String, size: CGSize = .init(width: 80, height: 80)
+        for name: String,
+        size: CGSize = .init(width: 80, height: 80)
     ) -> UIImage {
         let initials = String(name.prefix(1)).uppercased()
         let renderer = UIGraphicsImageRenderer(size: size)
@@ -192,7 +213,9 @@ public class ExpoShareIntentModule: Module {
             // 2) draw the letter centered
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(
-                    ofSize: size.width * 0.5, weight: .medium),
+                    ofSize: size.width * 0.5,
+                    weight: .medium
+                ),
                 .foregroundColor: UIColor.white,
             ]
             let textSize = initials.size(withAttributes: attrs)
@@ -245,7 +268,8 @@ public class ExpoShareIntentModule: Module {
         {
             return handleDirectTextUrl(
                 url: url,
-                fragment: fragment)
+                fragment: fragment
+            )
         }
 
         // Extract the key from URL host
@@ -258,16 +282,28 @@ public class ExpoShareIntentModule: Module {
         switch fragment {
         case "media":
             return processMediaContent(
-                key: key, userDefaults: userDefaults, fragment: fragment)
+                key: key,
+                userDefaults: userDefaults,
+                fragment: fragment
+            )
         case "file":
             return processFileContent(
-                key: key, userDefaults: userDefaults, fragment: fragment)
+                key: key,
+                userDefaults: userDefaults,
+                fragment: fragment
+            )
         case "weburl":
             return processWebUrlContent(
-                key: key, userDefaults: userDefaults, fragment: fragment)
+                key: key,
+                userDefaults: userDefaults,
+                fragment: fragment
+            )
         case "text":
             return processTextContent(
-                key: key, userDefaults: userDefaults, fragment: fragment)
+                key: key,
+                userDefaults: userDefaults,
+                fragment: fragment
+            )
         default:
             reportError("File type is invalid: \(fragment)")
             return "error"
@@ -292,7 +328,8 @@ public class ExpoShareIntentModule: Module {
      * Handles direct text URL without a key in host
      */
     private func handleDirectTextUrl(
-        url: URL, fragment: String
+        url: URL,
+        fragment: String
     ) -> String? {
         latestText = url.absoluteString
         return latestText.flatMap { text in
@@ -308,7 +345,9 @@ public class ExpoShareIntentModule: Module {
      * Processes media content from shared preferences
      */
     private func processMediaContent(
-        key: String, userDefaults: UserDefaults?, fragment: String
+        key: String,
+        userDefaults: UserDefaults?,
+        fragment: String
     ) -> String? {
         guard let json = userDefaults?.object(forKey: key) as? Data else {
             return "empty"
@@ -326,22 +365,31 @@ public class ExpoShareIntentModule: Module {
             {
                 let thumbnail = getAbsolutePath(for: thumbnailPath)
                 return SharedMediaFile(
-                    path: path, thumbnail: thumbnail,
+                    path: path,
+                    thumbnail: thumbnail,
                     fileName: mediaFile.fileName,
-                    fileSize: mediaFile.fileSize, width: mediaFile.width,
+                    fileSize: mediaFile.fileSize,
+                    width: mediaFile.width,
                     height: mediaFile.height,
-                    duration: mediaFile.duration, mimeType: mediaFile.mimeType,
+                    duration: mediaFile.duration,
+                    mimeType: mediaFile.mimeType,
                     type: mediaFile.type,
-                    conversationId: mediaFile.conversationId)
+                    conversationId: mediaFile.conversationId
+                )
             }
 
             return SharedMediaFile(
-                path: path, thumbnail: nil, fileName: mediaFile.fileName,
-                fileSize: mediaFile.fileSize, width: mediaFile.width,
+                path: path,
+                thumbnail: nil,
+                fileName: mediaFile.fileName,
+                fileSize: mediaFile.fileSize,
+                width: mediaFile.width,
                 height: mediaFile.height,
-                duration: mediaFile.duration, mimeType: mediaFile.mimeType,
+                duration: mediaFile.duration,
+                mimeType: mediaFile.mimeType,
                 type: mediaFile.type,
-                conversationId: mediaFile.conversationId)
+                conversationId: mediaFile.conversationId
+            )
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
@@ -353,7 +401,9 @@ public class ExpoShareIntentModule: Module {
      * Processes file content from shared preferences
      */
     private func processFileContent(
-        key: String, userDefaults: UserDefaults?, fragment: String
+        key: String,
+        userDefaults: UserDefaults?,
+        fragment: String
     ) -> String? {
         guard let json = userDefaults?.object(forKey: key) as? Data else {
             return "empty"
@@ -368,11 +418,17 @@ public class ExpoShareIntentModule: Module {
             }
 
             return SharedMediaFile(
-                path: path, thumbnail: nil, fileName: mediaFile.fileName,
-                fileSize: mediaFile.fileSize, width: nil, height: nil,
+                path: path,
+                thumbnail: nil,
+                fileName: mediaFile.fileName,
+                fileSize: mediaFile.fileSize,
+                width: nil,
+                height: nil,
                 duration: nil,
-                mimeType: mediaFile.mimeType, type: mediaFile.type,
-                conversationId: mediaFile.conversationId)
+                mimeType: mediaFile.mimeType,
+                type: mediaFile.type,
+                conversationId: mediaFile.conversationId
+            )
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
@@ -384,7 +440,9 @@ public class ExpoShareIntentModule: Module {
      * Processes web URL content from shared preferences
      */
     private func processWebUrlContent(
-        key: String, userDefaults: UserDefaults?, fragment: String
+        key: String,
+        userDefaults: UserDefaults?,
+        fragment: String
     ) -> String? {
         guard let json = userDefaults?.object(forKey: key) as? Data else {
             return "empty"
@@ -394,13 +452,15 @@ public class ExpoShareIntentModule: Module {
         self.conversationId = sharedArray.first?.conversationId
         let sharedWebUrls = sharedArray.map {
             WebUrl(
-                url: $0.url, meta: $0.meta,
-                conversationId: $0.conversationId)
+                url: $0.url,
+                meta: $0.meta,
+                conversationId: $0.conversationId
+            )
         }
 
         guard let json = toJson(data: sharedWebUrls) else { return "[]" }
         return
-        "{ \"weburls\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
+            "{ \"weburls\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
     }
 
     /**
@@ -427,7 +487,8 @@ public class ExpoShareIntentModule: Module {
 
         return latestText.flatMap { text in
             try? ShareIntentText(
-                conversationId: self.conversationId, text: text,
+                conversationId: self.conversationId,
+                text: text,
                 type: fragment
             ).toJSON()
         } ?? latestText
@@ -443,7 +504,8 @@ public class ExpoShareIntentModule: Module {
                 [
                     "data":
                         "appGroupIdentifier is nil `\(String(describing: appGroupIdentifier))`"
-                ])
+                ]
+            )
         }
         return appGroupIdentifier
     }
@@ -456,7 +518,8 @@ public class ExpoShareIntentModule: Module {
             return identifier
         }
         let phAsset = PHAsset.fetchAssets(
-            withLocalIdentifiers: [identifier], options: .none
+            withLocalIdentifiers: [identifier],
+            options: .none
         )
         .firstObject
         if phAsset == nil {
@@ -480,7 +543,9 @@ public class ExpoShareIntentModule: Module {
 
     private func decodeMedia(data: Data) -> [SharedMediaFile] {
         let encodedData = try? JSONDecoder().decode(
-            [SharedMediaFile].self, from: data)
+            [SharedMediaFile].self,
+            from: data
+        )
         return encodedData!
     }
 
@@ -546,9 +611,14 @@ public class ExpoShareIntentModule: Module {
         var type: SharedMediaType
 
         init(
-            path: String, thumbnail: String?, fileName: String, fileSize: Int?,
+            path: String,
+            thumbnail: String?,
+            fileName: String,
+            fileSize: Int?,
             width: Int?,
-            height: Int?, duration: Double?, mimeType: String,
+            height: Int?,
+            duration: Double?,
+            mimeType: String,
             type: SharedMediaType,
             conversationId: String?
         ) {
