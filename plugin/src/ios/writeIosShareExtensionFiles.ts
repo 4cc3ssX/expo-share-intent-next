@@ -21,10 +21,7 @@ export async function writeShareExtensionFiles(
   appName: ConfigPlugin<Parameters>["name"],
 ) {
   // ShareExtension-Info.plist
-  const infoPlistFilePath = getShareExtensionInfoFilePath(
-    platformProjectRoot,
-    parameters,
-  );
+  const infoPlistFilePath = getShareExtensionInfoFilePath(parameters);
   const infoPlistContent = getShareExtensionInfoContent(
     appName,
     appIdentifier,
@@ -34,10 +31,8 @@ export async function writeShareExtensionFiles(
   await fs.promises.writeFile(infoPlistFilePath, infoPlistContent);
 
   // ShareExtension.entitlements
-  const entitlementsFilePath = getShareExtensionEntitlementsFilePath(
-    platformProjectRoot,
-    parameters,
-  );
+  const entitlementsFilePath =
+    getShareExtensionEntitlementsFilePath(parameters);
   const entitlementsContent = getShareExtensionEntitlementsContent(
     appIdentifier,
     parameters,
@@ -81,12 +76,8 @@ export async function writeShareExtensionFiles(
 }
 
 //: [root]/ios/ShareExtension/ShareExtension.entitlements
-export function getShareExtensionEntitlementsFilePath(
-  platformProjectRoot: string,
-  parameters: Parameters,
-) {
+export function getShareExtensionEntitlementsFilePath(parameters: Parameters) {
   return path.join(
-    platformProjectRoot,
     getShareExtensionName(parameters),
     shareExtensionEntitlementsFileName,
   );
@@ -111,12 +102,8 @@ export function getShareExtensionEntitlementsContent(
 }
 
 //: [root]/ios/ShareExtension/ShareExtension-Info.plist
-export function getShareExtensionInfoFilePath(
-  platformProjectRoot: string,
-  parameters: Parameters,
-) {
+export function getShareExtensionInfoFilePath(parameters: Parameters) {
   return path.join(
-    platformProjectRoot,
     getShareExtensionName(parameters),
     shareExtensionInfoFileName,
   );
