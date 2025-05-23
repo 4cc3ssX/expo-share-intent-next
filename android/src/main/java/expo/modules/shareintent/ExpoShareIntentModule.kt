@@ -24,7 +24,6 @@ import android.provider.OpenableColumns
 import android.provider.MediaStore
 import android.util.Log
 import android.webkit.MimeTypeMap
-import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -34,6 +33,7 @@ import coil.target.Target
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.Promise
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,21 +54,22 @@ class ExpoShareIntentModule : Module() {
      */
     private val context: Context
         get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-        
+
     /**
      * Current activity if available
      */
     private val currentActivity: Activity?
         get() = appContext.currentActivity
-        
+
     companion object {
         private var instance: ExpoShareIntentModule? = null
-        private const val TEXT_SHARE_CATEGORY = "expo.modules.shareintent.category.TEXT_SHARE_TARGET"
+        private const val TEXT_SHARE_CATEGORY =
+            "expo.modules.shareintent.category.TEXT_SHARE_TARGET"
         private const val SEND_MESSAGE_CAPABILITY = "actions.intent.SEND_MESSAGE"
         private const val RECEIVE_MESSAGE_CAPABILITY = "actions.intent.RECEIVE_MESSAGE"
         private const val ICON_SIZE = 72
         private const val CANVAS_SIZE = 108
-        
+
         /**
          * Notifies about received share intent with the shared content
          * @param value The shared content details
@@ -77,7 +78,7 @@ class ExpoShareIntentModule : Module() {
             notifyState("pending")
             instance?.sendEvent("onChange", mapOf("data" to value))
         }
-        
+
         /**
          * Notifies about state changes
          * @param state Current state
@@ -85,7 +86,7 @@ class ExpoShareIntentModule : Module() {
         private fun notifyState(state: String) {
             instance?.sendEvent("onStateChange", mapOf("data" to state))
         }
-        
+
         /**
          * Notifies about errors
          * @param message Error message
@@ -93,7 +94,7 @@ class ExpoShareIntentModule : Module() {
         private fun notifyError(message: String) {
             instance?.sendEvent("onError", mapOf("data" to message))
         }
-        
+
         /**
          * Notifies about successful donate operation
          * @param data The data associated with the donate operation
@@ -115,23 +116,25 @@ class ExpoShareIntentModule : Module() {
                 notifyError("Cannot get resolver (getFileInfo)")
                 return createBasicFileInfo(uri)
             }
-            
+
             // Query file metadata
             return try {
                 val queryResult = resolver.query(uri, null, null, null, null)
                     ?: return createBasicFileInfo(uri)
-                
+
                 // Extract basic file information
                 queryResult.use { cursor ->
                     cursor.moveToFirst()
                     val fileInfo = extractFileInfoFromCursor(cursor, resolver, uri)
-                    
+
                     // Extract media-specific information based on mime type
                     when {
-                        fileInfo["mimeType"]?.startsWith("image/") == true -> 
+                        fileInfo["mimeType"]?.startsWith("image/") == true ->
                             fileInfo + extractImageDimensions(resolver, uri)
-                        fileInfo["mimeType"]?.startsWith("video/") == true -> 
+
+                        fileInfo["mimeType"]?.startsWith("video/") == true ->
                             fileInfo + extractVideoMetadata(uri)
+
                         else -> fileInfo
                     }
                 }
@@ -140,7 +143,7 @@ class ExpoShareIntentModule : Module() {
                 createBasicFileInfo(uri)
             }
         }
-        
+
         /**
          * Creates basic file info when detailed info can't be retrieved
          */
@@ -148,14 +151,14 @@ class ExpoShareIntentModule : Module() {
             "contentUri" to uri.toString(),
             "filePath" to instance?.getAbsolutePath(uri)
         )
-        
+
         /**
          * Extracts basic file information from cursor
          */
         @SuppressLint("Range")
         private fun extractFileInfoFromCursor(
-            cursor: Cursor, 
-            resolver: ContentResolver, 
+            cursor: Cursor,
+            resolver: ContentResolver,
             uri: Uri
         ): Map<String, String?> = mapOf(
             "contentUri" to uri.toString(),
@@ -164,23 +167,26 @@ class ExpoShareIntentModule : Module() {
             "fileSize" to cursor.getString(cursor.getColumnIndex(OpenableColumns.SIZE)),
             "mimeType" to resolver.getType(uri)
         )
-        
+
         /**
          * Gets the content resolver from instance
          */
-        private fun getContentResolver(): ContentResolver? = 
+        private fun getContentResolver(): ContentResolver? =
             instance?.currentActivity?.contentResolver ?: instance?.context?.contentResolver
-        
+
         /**
          * Extracts image dimensions from an image URI
          */
-        private fun extractImageDimensions(resolver: ContentResolver, uri: Uri): Map<String, String?> {
+        private fun extractImageDimensions(
+            resolver: ContentResolver,
+            uri: Uri
+        ): Map<String, String?> {
             return try {
                 val options = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
                 BitmapFactory.decodeStream(resolver.openInputStream(uri), null, options)
-                
+
                 mapOf(
                     "width" to options.outWidth.toString(),
                     "height" to options.outHeight.toString()
@@ -192,7 +198,7 @@ class ExpoShareIntentModule : Module() {
                 )
             }
         }
-        
+
         /**
          * Extracts video metadata from a video URI
          */
@@ -201,19 +207,23 @@ class ExpoShareIntentModule : Module() {
                 val filePath = instance?.getAbsolutePath(uri) ?: return emptyMap()
                 val retriever = MediaMetadataRetriever()
                 retriever.setDataSource(filePath)
-                
+
                 // Extract basic dimensions
-                var width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
-                var height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
-                
+                var width =
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                var height =
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+
                 // Check orientation and flip dimensions if needed
-                val metaRotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toInt() ?: 0
+                val metaRotation =
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+                        ?.toInt() ?: 0
                 if (metaRotation == 90 || metaRotation == 270) {
                     val temp = width
                     width = height
                     height = temp
                 }
-                
+
                 mapOf(
                     "width" to width,
                     "height" to height,
@@ -263,7 +273,10 @@ class ExpoShareIntentModule : Module() {
         private fun removeLongLivedShortcut(shortcutId: String) {
             try {
                 instance?.let { module ->
-                    ShortcutManagerCompat.removeLongLivedShortcuts(module.context, listOf(shortcutId))
+                    ShortcutManagerCompat.removeLongLivedShortcuts(
+                        module.context,
+                        listOf(shortcutId)
+                    )
                 }
             } catch (e: Exception) {
                 notifyError("Error removing shortcut: ${e.message}")
@@ -277,42 +290,48 @@ class ExpoShareIntentModule : Module() {
         fun handleShareIntent(intent: Intent) {
             // Early return if no type
             val intentType = intent.type ?: return
-            
+
             when {
                 // Handle text/plain content
                 intentType.startsWith("text/plain") -> handleTextShare(intent)
-                
+
                 // Handle file content
                 else -> handleFileShare(intent)
             }
         }
-        
+
         /**
          * Handles text or URL sharing
          */
         private fun handleTextShare(intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SEND -> {
-                    notifyShareIntent(mapOf(
-                        "text" to intent.getStringExtra(Intent.EXTRA_TEXT),
-                        "type" to "text",
-                        "meta" to mapOf(
-                            "title" to intent.getCharSequenceExtra(Intent.EXTRA_TITLE),
+                    notifyShareIntent(
+                        mapOf(
+                            "text" to intent.getStringExtra(Intent.EXTRA_TEXT),
+                            "type" to "text",
+                            "meta" to mapOf(
+                                "title" to intent.getCharSequenceExtra(Intent.EXTRA_TITLE),
+                            )
                         )
-                    ))
+                    )
                 }
+
                 Intent.ACTION_VIEW -> {
-                    notifyShareIntent(mapOf(
-                        "text" to intent.dataString, 
-                        "type" to "text"
-                    ))
+                    notifyShareIntent(
+                        mapOf(
+                            "text" to intent.dataString,
+                            "type" to "text"
+                        )
+                    )
                 }
+
                 else -> {
                     notifyError("Invalid action for text sharing: ${intent.action}")
                 }
             }
         }
-        
+
         /**
          * Handles file sharing (single or multiple)
          */
@@ -321,43 +340,58 @@ class ExpoShareIntentModule : Module() {
                 Intent.ACTION_SEND -> {
                     val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM)
                     if (uri != null) {
-                        notifyShareIntent(mapOf(
-                            "files" to arrayOf(getFileInfo(uri)), 
-                            "type" to "file"
-                        ))
+                        notifyShareIntent(
+                            mapOf(
+                                "files" to arrayOf(getFileInfo(uri)),
+                                "type" to "file"
+                            )
+                        )
                     } else {
                         notifyError("Empty uri for file sharing: ${intent.action}")
                     }
                 }
+
                 Intent.ACTION_SEND_MULTIPLE -> {
                     val uris = intent.parcelableArrayList<Uri>(Intent.EXTRA_STREAM)
                     if (uris != null) {
-                        notifyShareIntent(mapOf(
-                            "files" to uris.map { getFileInfo(it) }, 
-                            "type" to "file"
-                        ))
+                        notifyShareIntent(
+                            mapOf(
+                                "files" to uris.map { getFileInfo(it) },
+                                "type" to "file"
+                            )
+                        )
                     } else {
                         notifyError("Empty uris array for file sharing: ${intent.action}")
                     }
                 }
+
                 else -> {
                     notifyError("Invalid action for file sharing: ${intent.action}")
                 }
             }
         }
-        
+
         /*
          * https://stackoverflow.com/questions/73019160/the-getparcelableextra-method-is-deprecated
          */
         private inline fun <reified T : Parcelable> Intent.parcelable(key: String): T? = when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelableExtra(key, T::class.java)
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelableExtra(
+                key,
+                T::class.java
+            )
+
             else -> @Suppress("DEPRECATION") getParcelableExtra(key) as? T
         }
 
-        private inline fun <reified T : Parcelable> Intent.parcelableArrayList(key: String): ArrayList<T>? = when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelableArrayListExtra(key, T::class.java)
-            else -> @Suppress("DEPRECATION") getParcelableArrayListExtra(key)
-        }
+        private inline fun <reified T : Parcelable> Intent.parcelableArrayList(key: String): ArrayList<T>? =
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelableArrayListExtra(
+                    key,
+                    T::class.java
+                )
+
+                else -> @Suppress("DEPRECATION") getParcelableArrayListExtra(key)
+            }
     }
 
     // See https://docs.expo.dev/modules/module-api
@@ -375,8 +409,8 @@ class ExpoShareIntentModule : Module() {
             }
         }
 
-        AsyncFunction("donateSendMessage") { conversationId: String, name: String, imageURL: String?, content: String? ->
-            donateSendMessage(conversationId, name, imageURL, content)
+        AsyncFunction("donateSendMessage") { conversationId: String, name: String, imageURL: String?, content: String?, promise: Promise ->
+            donateSendMessage(conversationId, name, imageURL, content, promise)
         }
 
         Function("clearShareIntent") { _: String ->
@@ -392,10 +426,10 @@ class ExpoShareIntentModule : Module() {
         }
 
         AsyncFunction("setDynamicShortcuts") { shortcuts: List<Map<String, Any>> ->
-            val shortcutList = shortcuts.mapIndexed { index, shortcutData -> 
+            val shortcutList = shortcuts.mapIndexed { index, shortcutData ->
                 createShortcutFromData(shortcutData, index)
             }.filterNotNull()
-            
+
             setDynamicShortcuts(shortcutList)
         }
 
@@ -426,28 +460,31 @@ class ExpoShareIntentModule : Module() {
      * @param position Position in the list (for ordering)
      * @return ShortcutInfoCompat or null if creation failed
      */
-    private fun createShortcutFromData(shortcutData: Map<String, Any>, position: Int): ShortcutInfoCompat? {
+    private fun createShortcutFromData(
+        shortcutData: Map<String, Any>,
+        position: Int
+    ): ShortcutInfoCompat? {
         try {
             val activity = currentActivity ?: return null
             val conversationId = shortcutData["id"] as? String ?: return null
             val name = shortcutData["name"] as? String ?: return null
             val imageURL = shortcutData["imageURL"] as? String
-            
+
             // Create intent for the shortcut
             val targetClass = activity.javaClass
             val intent = Intent(Intent.ACTION_SEND).apply {
                 setClassName(activity.packageName, targetClass.name)
                 putExtra(Intent.EXTRA_SHORTCUT_ID, conversationId)
-                type = "text/plain" 
+                type = "text/plain"
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
-            
+
             // Shortcut categories - used to match shortcuts with share target definitions
             val categories = setOf(TEXT_SHARE_CATEGORY)
-            
+
             // Get the short label (first name or initial part of name)
             val shortLabel = name.split(" ").firstOrNull() ?: name
-            
+
             // Create shortcut builder with all required properties
             val builder = ShortcutInfoCompat.Builder(context, conversationId)
                 .setShortLabel(shortLabel)
@@ -457,11 +494,11 @@ class ExpoShareIntentModule : Module() {
                 .setLongLived(true)
                 .setCategories(categories)
                 .addCapabilityBinding(SEND_MESSAGE_CAPABILITY)
-            
+
             // Handle icon loading synchronously for this method
             val icon = createDefaultIcon(name)
             builder.setIcon(icon)
-            
+
             // Asynchronously update the icon if URL is provided
             if (!imageURL.isNullOrEmpty()) {
                 loadImageIcon(imageURL, name) { updatedIcon ->
@@ -473,14 +510,14 @@ class ExpoShareIntentModule : Module() {
                     }
                 }
             }
-            
+
             return builder.build()
         } catch (e: Exception) {
             Log.e("ExpoShareIntent", "Error creating shortcut: ${e.message}")
             return null
         }
     }
-    
+
     /**
      * Creates a default icon for shortcuts when async loading isn't appropriate
      * @param name Name to use for monogram
@@ -505,10 +542,10 @@ class ExpoShareIntentModule : Module() {
             when {
                 // Handle document URIs through the DocumentProvider
                 DocumentsContract.isDocumentUri(context, uri) -> getDocumentProviderPath(uri)
-                
+
                 // Handle content scheme URIs
                 "content".equals(uri.scheme, ignoreCase = true) -> getDataColumn(uri, null, null)
-                
+
                 // Default to the URI path for other schemes
                 else -> uri.path
             }
@@ -518,42 +555,42 @@ class ExpoShareIntentModule : Module() {
             null
         }
     }
-    
+
     /**
      * Handles document provider URIs based on their authority
      */
     private fun getDocumentProviderPath(uri: Uri): String? {
         val docId = DocumentsContract.getDocumentId(uri)
-        
+
         return when {
             // External storage documents
             isExternalStorageDocument(uri) -> handleExternalStorageDocument(docId)
-            
+
             // Downloads documents
             isDownloadsDocument(uri) -> handleDownloadsDocument(uri, docId)
-            
+
             // Media documents (images, videos, audio)
             isMediaDocument(uri) -> handleMediaDocument(uri, docId)
-            
+
             // Other document types
             else -> null
         }
     }
-    
+
     /**
      * Handles external storage document URIs
      */
     private fun handleExternalStorageDocument(docId: String): String? {
         val split = docId.split(":", limit = 2)
         val type = split[0]
-        
+
         return if ("primary".equals(type, ignoreCase = true) && split.size > 1) {
             "${Environment.getExternalStorageDirectory()}/${split[1]}"
         } else {
             getDataColumn(uri = Uri.parse(docId), selection = null, selectionArgs = null)
         }
     }
-    
+
     /**
      * Handles downloads document URIs
      */
@@ -569,17 +606,17 @@ class ExpoShareIntentModule : Module() {
             getDataColumn(uri, null, null)
         }
     }
-    
+
     /**
      * Handles media document URIs (images, videos, audio)
      */
     private fun handleMediaDocument(uri: Uri, docId: String): String? {
         val split = docId.split(":", limit = 2)
         val type = split[0]
-        
+
         // Early return if we don't have the expected format
         if (split.size < 2) return null
-        
+
         // Select the appropriate content URI based on media type
         val contentUri = when (type) {
             "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
@@ -587,7 +624,7 @@ class ExpoShareIntentModule : Module() {
             "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             else -> return null
         }
-        
+
         // Query the content provider
         val selection = "_id=?"
         val selectionArgs = arrayOf(split[1])
@@ -603,34 +640,38 @@ class ExpoShareIntentModule : Module() {
      * @param selectionArgs (Optional) Selection arguments used in the query.
      * @return The value of the _data column, which is typically a file path.
      */
-    private fun getDataColumn(uri: Uri, selection: String?, selectionArgs: Array<String>?): String? {
+    private fun getDataColumn(
+        uri: Uri,
+        selection: String?,
+        selectionArgs: Array<String>?
+    ): String? {
         // Get content resolver
         val resolver = getContentResolver() ?: run {
             notifyError("Cannot get resolver (getDataColumn)")
             return null
         }
-        
+
         // Handle content with authority by copying to cache
         if (uri.authority != null) {
             return copyUriToCache(uri, resolver, selection, selectionArgs)
         }
-        
+
         // Otherwise try to get the direct file path
         return queryForDataColumn(resolver, uri, selection, selectionArgs)
     }
-    
+
     /**
      * Copies URI content to cache directory and returns the path
      */
     private fun copyUriToCache(
-        uri: Uri, 
+        uri: Uri,
         resolver: ContentResolver,
-        selection: String?, 
+        selection: String?,
         selectionArgs: Array<String>?
     ): String? {
         // Try to get the filename
         val targetFile = getTargetFile(uri, resolver, selection, selectionArgs) ?: return null
-        
+
         // Copy the file content
         try {
             resolver.openInputStream(uri)?.use { input ->
@@ -644,33 +685,34 @@ class ExpoShareIntentModule : Module() {
             return null
         }
     }
-    
+
     /**
      * Creates a target file in cache, either with original name or generated name
      */
     private fun getTargetFile(
-        uri: Uri, 
+        uri: Uri,
         resolver: ContentResolver,
-        selection: String?, 
+        selection: String?,
         selectionArgs: Array<String>?
     ): File? {
         // Try to get the original filename
         return try {
-            resolver.query(uri, arrayOf("_display_name"), selection, selectionArgs, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val columnIndex = cursor.getColumnIndexOrThrow("_display_name")
-                    val fileName = cursor.getString(columnIndex)
-                    Log.i("FileDirectory", "File name: $fileName")
-                    File(context.cacheDir, fileName)
-                } else {
-                    createGenericFile(uri, resolver)
-                }
-            } ?: createGenericFile(uri, resolver)
+            resolver.query(uri, arrayOf("_display_name"), selection, selectionArgs, null)
+                ?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val columnIndex = cursor.getColumnIndexOrThrow("_display_name")
+                        val fileName = cursor.getString(columnIndex)
+                        Log.i("FileDirectory", "File name: $fileName")
+                        File(context.cacheDir, fileName)
+                    } else {
+                        createGenericFile(uri, resolver)
+                    }
+                } ?: createGenericFile(uri, resolver)
         } catch (e: Exception) {
             createGenericFile(uri, resolver)
         }
     }
-    
+
     /**
      * Creates a generic file name based on mime type
      */
@@ -686,7 +728,7 @@ class ExpoShareIntentModule : Module() {
         val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: ""
         return File(context.cacheDir, "${prefix}_${Date().time}.${extension}")
     }
-    
+
     /**
      * Queries for _data column to get direct file path
      */
@@ -696,20 +738,21 @@ class ExpoShareIntentModule : Module() {
         selection: String?,
         selectionArgs: Array<String>?
     ): String? {
-        return resolver.query(uri, arrayOf("_data"), selection, selectionArgs, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val columnIndex = cursor.getColumnIndexOrThrow("_data")
-                cursor.getString(columnIndex)
-            } else {
-                null
+        return resolver.query(uri, arrayOf("_data"), selection, selectionArgs, null)
+            ?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val columnIndex = cursor.getColumnIndexOrThrow("_data")
+                    cursor.getString(columnIndex)
+                } else {
+                    null
+                }
             }
-        }
     }
-    
+
     /**
      * Gets the content resolver from instance
      */
-    private fun getContentResolver(): ContentResolver? = 
+    private fun getContentResolver(): ContentResolver? =
         currentActivity?.contentResolver ?: context.contentResolver
 
     /**
@@ -745,7 +788,7 @@ class ExpoShareIntentModule : Module() {
         val size = CANVAS_SIZE
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        
+
         // Background fill
         val backgroundPaint = Paint().apply {
             color = Color.parseColor("#3498db") // Blue background
@@ -753,7 +796,7 @@ class ExpoShareIntentModule : Module() {
             style = Paint.Style.FILL
         }
         canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), backgroundPaint)
-        
+
         // Draw initials
         val initial = name.firstOrNull()?.uppercase() ?: "?"
         val textPaint = Paint().apply {
@@ -762,19 +805,19 @@ class ExpoShareIntentModule : Module() {
             isAntiAlias = true
             textAlign = Paint.Align.CENTER
         }
-        
+
         val textBounds = Rect()
         textPaint.getTextBounds(initial, 0, initial.length, textBounds)
-        
+
         // Center the text
         val xPos = size / 2
         val yPos = (size / 2 - (textPaint.descent() + textPaint.ascent()) / 2).toInt()
-        
+
         canvas.drawText(initial, xPos.toFloat(), yPos.toFloat(), textPaint)
-        
+
         return bitmap
     }
-    
+
     /**
      * Creates an adaptive bitmap suitable for shortcuts
      * @param bitmap Source bitmap to adapt
@@ -790,23 +833,23 @@ class ExpoShareIntentModule : Module() {
         } else {
             bitmap
         }
-        
+
         // Create a canvas with appropriate size
         val result = Bitmap.createBitmap(CANVAS_SIZE, CANVAS_SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
-        
+
         // Fill with transparent background
         canvas.drawColor(Color.TRANSPARENT)
-        
+
         // Center the image in the canvas
         val left = (CANVAS_SIZE - source.width) / 2
         val top = (CANVAS_SIZE - source.height) / 2
-        
+
         canvas.drawBitmap(source, left.toFloat(), top.toFloat(), null)
-        
+
         return result
     }
-    
+
     /**
      * Loads an image from URL and converts it to IconCompat
      * @param imageUrl URL of the image to load
@@ -821,12 +864,15 @@ class ExpoShareIntentModule : Module() {
             callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
             return
         }
-        
+
         // Check if it's a local file
         if (imageUrl.startsWith("file://") || imageUrl.startsWith("/")) {
             try {
-                val uri = if (imageUrl.startsWith("file://")) Uri.parse(imageUrl) else Uri.fromFile(File(imageUrl))
-                val bitmap = BitmapFactory.decodeStream(context.contentResolver.openInputStream(uri))
+                val uri = if (imageUrl.startsWith("file://")) Uri.parse(imageUrl) else Uri.fromFile(
+                    File(imageUrl)
+                )
+                val bitmap =
+                    BitmapFactory.decodeStream(context.contentResolver.openInputStream(uri))
                 if (bitmap != null) {
                     val adaptiveBitmap = createAdaptiveBitmap(bitmap)
                     callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
@@ -836,7 +882,7 @@ class ExpoShareIntentModule : Module() {
                 Log.e("ExpoShareIntent", "Error loading local image: ${e.message}")
             }
         }
-        
+
         // Handle remote image URL
         try {
             val imageLoader = ImageLoader(context)
@@ -847,20 +893,21 @@ class ExpoShareIntentModule : Module() {
                         CoroutineScope(Dispatchers.IO).launch {
                             try {
                                 // Convert drawable to bitmap
-                                val bitmap = if (result is android.graphics.drawable.BitmapDrawable) {
-                                    result.bitmap
-                                } else {
-                                    val bmp = Bitmap.createBitmap(
-                                        result.intrinsicWidth,
-                                        result.intrinsicHeight,
-                                        Bitmap.Config.ARGB_8888
-                                    )
-                                    val canvas = Canvas(bmp)
-                                    result.setBounds(0, 0, canvas.width, canvas.height)
-                                    result.draw(canvas)
-                                    bmp
-                                }
-                                
+                                val bitmap =
+                                    if (result is android.graphics.drawable.BitmapDrawable) {
+                                        result.bitmap
+                                    } else {
+                                        val bmp = Bitmap.createBitmap(
+                                            result.intrinsicWidth,
+                                            result.intrinsicHeight,
+                                            Bitmap.Config.ARGB_8888
+                                        )
+                                        val canvas = Canvas(bmp)
+                                        result.setBounds(0, 0, canvas.width, canvas.height)
+                                        result.draw(canvas)
+                                        bmp
+                                    }
+
                                 val adaptiveBitmap = createAdaptiveBitmap(bitmap)
                                 withContext(Dispatchers.Main) {
                                     callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
@@ -875,18 +922,18 @@ class ExpoShareIntentModule : Module() {
                             }
                         }
                     }
-                    
+
                     override fun onError(error: Drawable?) {
                         val fallback = createMonogramAvatar(name)
                         val adaptiveBitmap = createAdaptiveBitmap(fallback)
                         callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
                     }
-                    
+
                     override fun onStart(placeholder: Drawable?) {}
                     // Note: onStop is not needed in Coil 2.4.0
                 })
                 .build()
-            
+
             imageLoader.enqueue(request)
         } catch (e: Exception) {
             Log.e("ExpoShareIntent", "Error loading image: ${e.message}")
@@ -895,10 +942,10 @@ class ExpoShareIntentModule : Module() {
             callback(IconCompat.createWithAdaptiveBitmap(adaptiveBitmap))
         }
     }
-    
+
     /**
      * Creates and pushes a dynamic shortcut for direct sharing
-     * 
+     *
      * @param conversationId Unique identifier for the conversation/contact
      * @param name Name of the person/group
      * @param imageURL Optional URL to the profile picture
@@ -907,36 +954,39 @@ class ExpoShareIntentModule : Module() {
      */
     private fun donateSendMessage(
         conversationId: String,
-        name: String, 
+        name: String,
         imageURL: String? = null,
-        content: String? = null
-    ): Promise<Unit> {
-        val promise = Promise<Unit>()
-        
+        content: String? = null,
+        promise: Promise
+    ) {
+
         try {
             // Activity must be available for sharing shortcuts
             val activity = currentActivity
             if (activity == null) {
-                notifyError("Activity not available for sharing shortcuts")
-                promise.reject(Exception("Activity not available"))
-                return promise
+                promise.reject(
+                    "E_NO_ACTIVITY",
+                    "Activity not available for sharing shortcuts",
+                    null
+                )
+                return
             }
-            
+
             // Create intent for the shortcut
             val targetClass = activity.javaClass
             val intent = Intent(Intent.ACTION_SEND).apply {
                 setClassName(activity.packageName, targetClass.name)
                 putExtra(Intent.EXTRA_SHORTCUT_ID, conversationId)
-                type = "text/plain" 
+                type = "text/plain"
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
-            
+
             // Shortcut categories - used to match shortcuts with share target definitions
             val categories = setOf(TEXT_SHARE_CATEGORY)
-            
+
             // Get the short label (first name or initial part of name)
             val shortLabel = name.split(" ").firstOrNull() ?: name
-            
+
             // Set up icon loading with proper callback handling
             loadImageIcon(imageURL, name) { icon ->
                 try {
@@ -950,10 +1000,10 @@ class ExpoShareIntentModule : Module() {
                         .setCategories(categories)
                         .addCapabilityBinding(SEND_MESSAGE_CAPABILITY)
                         .build()
-                    
+
                     // Push the dynamic shortcut
                     ShortcutManagerCompat.pushDynamicShortcut(context, shortcutInfo)
-                    
+
                     // Report shortcut usage
                     ShortcutManagerCompat.reportShortcutUsed(context, conversationId)
                     
@@ -968,20 +1018,18 @@ class ExpoShareIntentModule : Module() {
                     promise.resolve(Unit)
                 } catch (e: Exception) {
                     notifyError("Error creating shortcut: ${e.message}")
-                    promise.reject(e)
+                    promise.reject("E_CREATE_SHORTCUT", e.message, e.cause)
                 }
             }
         } catch (e: Exception) {
             notifyError("Error in donateSendMessage: ${e.message}")
-            promise.reject(e)
+            promise.reject("E_DONATE_SEND_MESSAGE", e.message, e.cause)
         }
-        
-        return promise
     }
-    
+
     /**
      * Publishes a list of direct share targets for contacts
-     * 
+     *
      * @param contacts List of contact information to create share targets for
      * @return True if successfully published, false otherwise
      */
@@ -990,14 +1038,14 @@ class ExpoShareIntentModule : Module() {
             val activity = currentActivity ?: return false
             val packageName = context.packageName
             val targetClass = activity.javaClass.name
-            
+
             // Create shortcuts for each contact (limited to first 10 contacts)
             val shortcuts = contacts.take(10).mapIndexed { index, contact ->
                 val id = contact["id"] as? String ?: UUID.randomUUID().toString()
                 val name = contact["name"] as? String ?: "Unknown"
-                val imageUrl = contact["imageURL"] as? String  
+                val imageUrl = contact["imageURL"] as? String
                 val shortLabel = name.split(" ").firstOrNull() ?: name
-                
+
                 // Create intent for shortcuts
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     setClassName(packageName, targetClass)
@@ -1007,7 +1055,7 @@ class ExpoShareIntentModule : Module() {
                     type = "text/plain"
                     flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
                 }
-                
+
                 // Create shortcut info builder
                 val builder = ShortcutInfoCompat.Builder(context, id)
                     .setShortLabel(shortLabel)
@@ -1018,17 +1066,17 @@ class ExpoShareIntentModule : Module() {
                     .setCategories(setOf(TEXT_SHARE_CATEGORY))
                     .setPerson(createPerson(id, name, imageUrl))
                     .addCapabilityBinding(SEND_MESSAGE_CAPABILITY)
-                
+
                 // Create default icon
                 val defaultIcon = createDefaultIcon(name)
                 builder.setIcon(defaultIcon)
-                
+
                 builder.build()
             }
-            
+
             // Remove existing shortcuts first 
             ShortcutManagerCompat.removeAllDynamicShortcuts(context)
-            
+
             // Add new shortcuts
             return if (shortcuts.isNotEmpty()) {
                 ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
@@ -1041,22 +1089,26 @@ class ExpoShareIntentModule : Module() {
             return false
         }
     }
-    
+
     /**
      * Creates a Person object for shortcuts
      */
-    private fun createPerson(id: String, name: String, imageUrl: String?): androidx.core.app.Person {
+    private fun createPerson(
+        id: String,
+        name: String,
+        imageUrl: String?
+    ): androidx.core.app.Person {
         val builder = androidx.core.app.Person.Builder()
             .setName(name)
             .setKey(id)
             .setImportant(true)
-        
+
         // Load image icon if available, otherwise use monogram
         if (!imageUrl.isNullOrEmpty()) {
             try {
                 val uri = Uri.parse(imageUrl)
                 builder.setUri(uri.toString())
-                
+
                 // Try to set icon if possible (synchronously for simplicity)
                 if (imageUrl.startsWith("file://") || imageUrl.startsWith("/")) {
                     val bitmap = BitmapFactory.decodeFile(
@@ -1078,53 +1130,7 @@ class ExpoShareIntentModule : Module() {
         } else {
             builder.setIcon(createDefaultIcon(name))
         }
-        
+
         return builder.build()
-    }
-
-    // ...existing code...
-}
-
-/**
- * Simple Promise implementation for async operations
- */
-class Promise<T> {
-    private var resolved = false
-    private var rejected = false
-    private var resolveCallback: ((T) -> Unit)? = null
-    private var rejectCallback: ((Throwable) -> Unit)? = null
-    private var resolveValue: T? = null
-    private var rejectValue: Throwable? = null
-    
-    fun resolve(value: T) {
-        if (resolved || rejected) return
-        resolved = true
-        resolveValue = value
-        resolveCallback?.invoke(value)
-    }
-    
-    fun reject(error: Throwable) {
-        if (resolved || rejected) return
-        rejected = true
-        rejectValue = error
-        rejectCallback?.invoke(error)
-    }
-    
-    fun then(onResolve: (T) -> Unit): Promise<T> {
-        if (resolved) {
-            resolveCallback?.let { onResolve(resolveValue!!) }
-        } else {
-            resolveCallback = onResolve
-        }
-        return this
-    }
-    
-    fun catch(onReject: (Throwable) -> Unit): Promise<T> {
-        if (rejected) {
-            rejectCallback?.let { onReject(rejectValue!!) }
-        } else {
-            rejectCallback = onReject
-        }
-        return this
     }
 }
