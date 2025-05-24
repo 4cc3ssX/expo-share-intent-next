@@ -38,12 +38,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URL
 import java.util.Date
 import java.util.UUID
+import androidx.core.net.toUri
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
+import androidx.core.graphics.scale
 
 /**
  * Expo module for handling shared content from other apps
@@ -587,7 +589,7 @@ class ExpoShareIntentModule : Module() {
         return if ("primary".equals(type, ignoreCase = true) && split.size > 1) {
             "${Environment.getExternalStorageDirectory()}/${split[1]}"
         } else {
-            getDataColumn(uri = Uri.parse(docId), selection = null, selectionArgs = null)
+            getDataColumn(uri = docId.toUri(), selection = null, selectionArgs = null)
         }
     }
 
@@ -597,7 +599,7 @@ class ExpoShareIntentModule : Module() {
     private fun handleDownloadsDocument(uri: Uri, docId: String): String? {
         return try {
             val contentUri = ContentUris.withAppendedId(
-                Uri.parse("content://downloads/public_downloads"),
+                "content://downloads/public_downloads".toUri(),
                 docId.toLong()
             )
             getDataColumn(contentUri, null, null)
@@ -701,7 +703,7 @@ class ExpoShareIntentModule : Module() {
                 ?.use { cursor ->
                     if (cursor.moveToFirst()) {
                         val columnIndex = cursor.getColumnIndexOrThrow("_display_name")
-                        val fileName = cursor.getString(columnIndex)
+                        val fileName = UUID.randomUUID().toString()
                         Log.i("FileDirectory", "File name: $fileName")
                         File(context.cacheDir, fileName)
                     } else {
@@ -786,12 +788,12 @@ class ExpoShareIntentModule : Module() {
      */
     private fun createMonogramAvatar(name: String): Bitmap {
         val size = CANVAS_SIZE
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
 
         // Background fill
         val backgroundPaint = Paint().apply {
-            color = Color.parseColor("#3498db") // Blue background
+            color = "#3498db".toColorInt() // Blue background
             isAntiAlias = true
             style = Paint.Style.FILL
         }
@@ -829,13 +831,13 @@ class ExpoShareIntentModule : Module() {
             val scaleFactor = ICON_SIZE.toFloat() / Math.max(bitmap.width, bitmap.height)
             val scaledWidth = (bitmap.width * scaleFactor).toInt()
             val scaledHeight = (bitmap.height * scaleFactor).toInt()
-            Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+            bitmap.scale(scaledWidth, scaledHeight)
         } else {
             bitmap
         }
 
         // Create a canvas with appropriate size
-        val result = Bitmap.createBitmap(CANVAS_SIZE, CANVAS_SIZE, Bitmap.Config.ARGB_8888)
+        val result = createBitmap(CANVAS_SIZE, CANVAS_SIZE)
         val canvas = Canvas(result)
 
         // Fill with transparent background
@@ -868,7 +870,7 @@ class ExpoShareIntentModule : Module() {
         // Check if it's a local file
         if (imageUrl.startsWith("file://") || imageUrl.startsWith("/")) {
             try {
-                val uri = if (imageUrl.startsWith("file://")) Uri.parse(imageUrl) else Uri.fromFile(
+                val uri = if (imageUrl.startsWith("file://")) imageUrl.toUri() else Uri.fromFile(
                     File(imageUrl)
                 )
                 val bitmap =
@@ -897,10 +899,9 @@ class ExpoShareIntentModule : Module() {
                                     if (result is android.graphics.drawable.BitmapDrawable) {
                                         result.bitmap
                                     } else {
-                                        val bmp = Bitmap.createBitmap(
+                                        val bmp = createBitmap(
                                             result.intrinsicWidth,
-                                            result.intrinsicHeight,
-                                            Bitmap.Config.ARGB_8888
+                                            result.intrinsicHeight
                                         )
                                         val canvas = Canvas(bmp)
                                         result.setBounds(0, 0, canvas.width, canvas.height)
@@ -1106,7 +1107,7 @@ class ExpoShareIntentModule : Module() {
         // Load image icon if available, otherwise use monogram
         if (!imageUrl.isNullOrEmpty()) {
             try {
-                val uri = Uri.parse(imageUrl)
+                val uri = imageUrl.toUri()
                 builder.setUri(uri.toString())
 
                 // Try to set icon if possible (synchronously for simplicity)
