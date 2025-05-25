@@ -32,10 +32,15 @@ export const withShareExtensionXcodeTarget: ConfigPlugin<Parameters> = (
     const marketingVersion = config.version!;
 
     // ShareExtension-Info.plist
-    const infoPlistFilePath = getShareExtensionInfoFilePath(parameters);
+    const infoPlistFilePath = getShareExtensionInfoFilePath(
+      platformProjectRoot,
+      parameters,
+    );
     // ShareExtension.entitlements
-    const entitlementsFilePath =
-      getShareExtensionEntitlementsFilePath(parameters);
+    const entitlementsFilePath = getShareExtensionEntitlementsFilePath(
+      platformProjectRoot,
+      parameters,
+    );
 
     await writeShareExtensionFiles(
       platformProjectRoot,
