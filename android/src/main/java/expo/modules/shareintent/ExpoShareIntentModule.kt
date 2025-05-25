@@ -65,6 +65,7 @@ class ExpoShareIntentModule : Module() {
 
     companion object {
         private var instance: ExpoShareIntentModule? = null
+        private const val TAG = "ExpoShareIntent";
         private const val TEXT_SHARE_CATEGORY =
             "expo.modules.shareintent.category.TEXT_SHARE_TARGET"
         private const val SEND_MESSAGE_CAPABILITY = "actions.intent.SEND_MESSAGE"
@@ -539,7 +540,7 @@ class ExpoShareIntentModule : Module() {
      * @param uri The Uri to query.
      * @return The absolute file path or null if not found
      */
-    fun getAbsolutePath(uri: Uri): String? {
+    private fun getAbsolutePath(uri: Uri): String? {
         return try {
             when {
                 // Handle document URIs through the DocumentProvider
@@ -699,12 +700,18 @@ class ExpoShareIntentModule : Module() {
     ): File? {
         // Try to get the original filename
         return try {
-            resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), selection, selectionArgs, null)
+            resolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                selection,
+                selectionArgs,
+                null
+            )
                 ?.use { cursor ->
                     if (cursor.moveToFirst()) {
                         val columnIndex = cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME)
                         val fileName = cursor.getString(columnIndex)
-                        Log.i("FileDirectory", "File name: $fileName")
+                        Log.i(TAG, "File name: $fileName")
                         File(context.cacheDir, fileName)
                     } else {
                         createGenericFile(uri, resolver)
@@ -1007,7 +1014,7 @@ class ExpoShareIntentModule : Module() {
 
                     // Report shortcut usage
                     ShortcutManagerCompat.reportShortcutUsed(context, conversationId)
-                    
+
                     // Notify success and resolve promise
                     val responseData = mapOf(
                         "conversationId" to conversationId,
