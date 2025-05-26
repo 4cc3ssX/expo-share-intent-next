@@ -13,6 +13,7 @@ type ShareIntentContextState = {
   isReady: boolean;
   hasShareIntent: boolean;
   shareIntent: ShareIntent;
+  refresh: () => void;
   donateSendMessage: (options: DonateSendMessageOptions) => Promise<void>;
   publishDirectShareTargets: (
     contacts: DirectShareContact[],
@@ -28,6 +29,7 @@ const ShareIntentContext = React.createContext<ShareIntentContextState>({
   isReady: false,
   hasShareIntent: false,
   shareIntent: DEFAULT_INTENT,
+  refresh: () => {},
   donateSendMessage: () => Promise.reject(new Error("Not implemented")),
   publishDirectShareTargets: () => Promise.reject(new Error("Not implemented")),
   reportShortcutUsed: () => {},
@@ -54,6 +56,7 @@ export function ShareIntentProvider({
     isReady,
     hasShareIntent,
     shareIntent,
+    refresh,
     donateSendMessage,
     publishDirectShareTargets,
     reportShortcutUsed,
@@ -69,6 +72,7 @@ export function ShareIntentProvider({
         isReady,
         hasShareIntent,
         shareIntent,
+        refresh,
         donateSendMessage,
         publishDirectShareTargets,
         reportShortcutUsed,

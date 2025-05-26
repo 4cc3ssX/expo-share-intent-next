@@ -26,6 +26,7 @@ export interface UseShareIntentResult {
   isReady: boolean;
   hasShareIntent: boolean;
   shareIntent: ShareIntent;
+  refresh: () => void;
   donateSendMessage: (options: DonateSendMessageOptions) => Promise<void>;
   resetShareIntent: (clearNative?: boolean) => void;
   publishDirectShareTargets(
@@ -172,6 +173,7 @@ export const useShareIntent = (
     isReady,
     hasShareIntent: hasIntent,
     shareIntent,
+    refresh: refreshIntent,
     donateSendMessage,
     publishDirectShareTargets,
     reportShortcutUsed,
