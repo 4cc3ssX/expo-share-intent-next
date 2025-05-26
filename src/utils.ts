@@ -120,16 +120,25 @@ export const parseShareIntent = (
   }
 
   // Files or media
-  const files = (raw.files || []).filter((f: any) => f.path || f.contentUri);
-  const shareFiles: ShareIntentFile[] = files.map((f: any) => ({
-    path: f.path || f.contentUri || null,
-    mimeType: f.mimeType || null,
-    fileName: f.fileName || null,
-    width: f.width ? Number(f.width) : null,
-    height: f.height ? Number(f.height) : null,
-    size: f.fileSize ? Number(f.fileSize) : null,
-    duration: f.duration ? Number(f.duration) : null,
-  }));
+  const files = (raw.files || []).filter(
+    (f: any) => f.path || f.filePath || f.contentUri,
+  );
+  const shareFiles: ShareIntentFile[] = files.map((f: any) => {
+    const path =
+      f.path ||
+      (f.filePath ? `file://${f.filePath}` : null) ||
+      f.contentUri ||
+      null;
+    return {
+      path,
+      mimeType: f.mimeType || null,
+      fileName: f.fileName || null,
+      width: f.width ? Number(f.width) : null,
+      height: f.height ? Number(f.height) : null,
+      size: f.fileSize ? Number(f.fileSize) : null,
+      duration: f.duration ? Number(f.duration) : null,
+    };
+  });
 
   const isMedia = shareFiles.every(
     (f) => f.mimeType?.startsWith("image/") || f.mimeType?.startsWith("video/"),
