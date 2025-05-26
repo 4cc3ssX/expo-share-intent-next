@@ -52,7 +52,8 @@
     "test": "expo-module test",
     "prepare": "expo-module prepare && yarn postbuild && husky",
     "prepublishOnly": "expo-module prepublishOnly",
-    "expo-module": "expo-module"
+    "expo-module": "expo-module",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/config-plugins": "^10.0.2",
