@@ -137,7 +137,7 @@ public class ExpoShareIntentModule: Module {
         guard let urlString = urlString?.trimmingCharacters(in: .whitespacesAndNewlines),
               !urlString.isEmpty,
               let url = URL(string: urlString) else {
-            return fallback
+            return INImage(imageData: fallback.pngData()!)
         }
         
         guard let scheme = url.scheme?.lowercased(),
