@@ -393,8 +393,13 @@ public class ExpoShareIntentModule: Module {
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
+        
+        let conversationIdFragment = self.conversationId != nil
+            ? "\"conversationId\": \"\(self.conversationId!)\""
+            : "\"conversationId\": null"
+        
         return
-            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
+            "{ \"files\": \(json), \"type\": \"\(fragment)\", \(conversationIdFragment) }"
     }
 
     /**
@@ -432,8 +437,12 @@ public class ExpoShareIntentModule: Module {
         }
 
         guard let json = toJson(data: sharedMediaFiles) else { return "[]" }
+        
+        let conversationIdFragment = self.conversationId != nil
+            ? "\"conversationId\": \"\(self.conversationId!)\""
+            : "\"conversationId\": null"
         return
-            "{ \"files\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
+            "{ \"files\": \(json), \"type\": \"\(fragment)\", \(conversationIdFragment) }"
     }
 
     /**
@@ -459,8 +468,11 @@ public class ExpoShareIntentModule: Module {
         }
 
         guard let json = toJson(data: sharedWebUrls) else { return "[]" }
+        let conversationIdFragment = self.conversationId != nil
+            ? "\"conversationId\": \"\(self.conversationId!)\""
+            : "\"conversationId\": null"
         return
-            "{ \"weburls\": \(json), \"type\": \"\(fragment)\", \"conversationId\": \"\(self.conversationId ?? "null")\" }"
+            "{ \"weburls\": \(json), \"type\": \"\(fragment)\", \(conversationIdFragment) }"
     }
 
     /**
