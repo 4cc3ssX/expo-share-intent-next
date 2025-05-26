@@ -35,11 +35,13 @@ export const withShareExtensionXcodeTarget: ConfigPlugin<Parameters> = (
     const infoPlistFilePath = getShareExtensionInfoFilePath(
       platformProjectRoot,
       parameters,
+      true,
     );
     // ShareExtension.entitlements
     const entitlementsFilePath = getShareExtensionEntitlementsFilePath(
       platformProjectRoot,
       parameters,
+      true,
     );
 
     await writeShareExtensionFiles(

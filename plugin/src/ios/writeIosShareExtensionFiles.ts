@@ -84,7 +84,15 @@ export async function writeShareExtensionFiles(
 export function getShareExtensionEntitlementsFilePath(
   platformProjectRoot: string,
   parameters: Parameters,
+  noRoot: boolean = false,
 ) {
+  if (noRoot) {
+    return path.join(
+      getShareExtensionName(parameters),
+      shareExtensionEntitlementsFileName,
+    );
+  }
+
   return path.join(
     platformProjectRoot,
     getShareExtensionName(parameters),
@@ -114,7 +122,15 @@ export function getShareExtensionEntitlementsContent(
 export function getShareExtensionInfoFilePath(
   platformProjectRoot: string,
   parameters: Parameters,
+  noRoot: boolean = false,
 ) {
+  if (noRoot) {
+    return path.join(
+      getShareExtensionName(parameters),
+      shareExtensionInfoFileName,
+    );
+  }
+
   return path.join(
     platformProjectRoot,
     getShareExtensionName(parameters),
