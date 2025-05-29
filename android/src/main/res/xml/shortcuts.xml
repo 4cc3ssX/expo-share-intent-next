@@ -3,10 +3,6 @@
     <!-- Share target for text sharing -->
     <share-target android:targetClass="expo.modules.shareintent.ExpoShareIntentActivity">
         <data android:mimeType="text/plain" />
-        <category android:name="expo.modules.shareintent.category.TEXT_SHARE_TARGET" />
-    </share-target>
-
-    <share-target android:targetClass="expo.modules.shareintent.ExpoShareIntentActivity">
         <data android:mimeType="image/*" />
         <category android:name="expo.modules.shareintent.category.TEXT_SHARE_TARGET" />
     </share-target>
